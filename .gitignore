@@ -1,0 +1,26 @@
+# 编译输出
+bin/
+obj/
+*.o
+*.obj
+*.exe
+*.dll
+*.lib
+*.a
+
+# IDE
+.vs/
+.vscode/
+.continue/
+*.suo
+*.user
+*.sln.docstates
+
+# 临时文件
+*.tmp
+*.log
+*.bak
+*~
+
+# 资源编译输出
+*.res

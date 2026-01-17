@@ -1,0 +1,44 @@
+#include <windows.h>
+
+// 图标资源
+IDI_APP_ICON     ICON "icons/app_icon.ico"
+IDI_CHROME_ICON  ICON "icons/chrome.ico"
+IDI_EDGE_ICON    ICON "icons/edge.ico"
+IDI_FOLDER_ICON  ICON "icons/folder.ico"
+
+// 版本信息
+1 VERSIONINFO
+ FILEVERSION 2,1,0,0
+ PRODUCTVERSION 2,1,0,0
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "080404b0"
+        BEGIN
+            VALUE "CompanyName", "BrowserGarage"
+            VALUE "FileDescription", "BrowserGarage - 浏览器搬家工具"
+            VALUE "FileVersion", "2.1.0"
+            VALUE "InternalName", "BrowserGarage"
+            VALUE "LegalCopyright", "Copyright (C) 2024"
+            VALUE "OriginalFilename", "BrowserGarage.exe"
+            VALUE "ProductName", "BrowserGarage"
+            VALUE "ProductVersion", "2.1.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x804, 1200
+    END
+END
+
+// 清单
+1 24 "manifest.xml"
