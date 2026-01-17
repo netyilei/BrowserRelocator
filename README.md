@@ -8,7 +8,7 @@
 
 # BrowserGarage
 
-A lightweight Chrome/Edge browser migration tool.
+A lightweight Windows Chrome/Edge browser migration tool.
 
 ## Features
 
@@ -74,7 +74,7 @@ MIT License
 
 # BrowserGarage
 
-一款轻量级的 Chrome/Edge 浏览器搬家工具。
+一款轻量级的 Windows Chrome/Edge 浏览器搬家工具。
 
 ## 功能特性
 
