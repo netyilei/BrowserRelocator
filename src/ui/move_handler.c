@@ -86,30 +86,21 @@ static BOOL PrepareOperation(BrowserInfo* browser, const LanguageStrings* lang, 
 // 操作后清理：恢复服务和按钮
 static void FinishOperation(BrowserInfo* browser, BOOL success, const LanguageStrings* lang, LPCWSTR successMsg)
 {
-    MessageBoxW(g_hMainWindow, L"[DEBUG] 进入 FinishOperation", L"DEBUG", MB_OK);
-    
     // 恢复按钮
     EnableWindow(g_ui.hMoveButton, TRUE);
     EnableWindow(g_ui.hRestoreButton, TRUE);
-    MessageBoxW(g_hMainWindow, L"[DEBUG] 按钮已恢复", L"DEBUG", MB_OK);
     
     // 恢复浏览器服务（恢复到操作前的状态）
-    MessageBoxW(g_hMainWindow, L"[DEBUG] 开始恢复浏览器服务...", L"DEBUG", MB_OK);
     RestoreBrowserServices(browser->type);
-    MessageBoxW(g_hMainWindow, L"[DEBUG] 浏览器服务已恢复", L"DEBUG", MB_OK);
     
     if (success) {
-        MessageBoxW(g_hMainWindow, L"[DEBUG] 成功分支，开始更新UI状态...", L"DEBUG", MB_OK);
         UpdateUIState();
-        MessageBoxW(g_hMainWindow, L"[DEBUG] UI状态已更新", L"DEBUG", MB_OK);
         Sleep(1000);
         ResetStatusBar();
-        MessageBoxW(g_hMainWindow, L"[DEBUG] 准备显示成功消息", L"DEBUG", MB_OK);
         MessageBoxW(g_hMainWindow, successMsg, lang->successTitle, MB_OK | MB_ICONINFORMATION);
     } else {
         ResetStatusBar();
     }
-    MessageBoxW(g_hMainWindow, L"[DEBUG] FinishOperation 完成", L"DEBUG", MB_OK);
 }
 
 // 执行搬家操作
@@ -118,21 +109,7 @@ static BOOL ExecuteMoveOperation(BrowserInfo* browser)
     const LanguageStrings* lang = GetCurrentLanguageStrings();
     WCHAR debugMsg[1024];
     
-    // DEBUG: 显示路径信息和权限状态
-    swprintf_s(debugMsg, 1024, 
-        L"[DEBUG] 搬家信息:\n\n"
-        L"管理员权限: %s\n\n"
-        L"源应用路径: %s\n"
-        L"目标应用路径: %s\n\n"
-        L"源数据路径: %s\n"
-        L"目标数据路径: %s\n\n"
-        L"moveApp: %d, moveData: %d",
-        IsAdmin() ? L"是" : L"否",
-        browser->appPath, browser->appTargetPath,
-        browser->dataPath, browser->dataTargetPath,
-        g_config.moveApp, g_config.moveData);
-    MessageBoxW(g_hMainWindow, debugMsg, L"DEBUG - 路径信息", MB_OK | MB_ICONINFORMATION);
-    
+    ShowStatusProgress(TRUE);
     int step = 2;
     
     // 2. 搬家应用程序目录
@@ -140,23 +117,20 @@ static BOOL ExecuteMoveOperation(BrowserInfo* browser)
         SetStatusProgress(step, 10);
         SetStatusText(lang->movingFiles);
         
-        // DEBUG: 检查源目录是否存在
+        // 检查源目录是否存在
         if (!PathFileExistsW(browser->appPath)) {
-            swprintf_s(debugMsg, 1024, L"[DEBUG] 源应用目录不存在:\n%s", browser->appPath);
-            MessageBoxW(g_hMainWindow, debugMsg, L"DEBUG - 错误", MB_OK | MB_ICONERROR);
+            swprintf_s(debugMsg, 1024, L"源应用目录不存在:\n%s", browser->appPath);
+            MessageBoxW(g_hMainWindow, debugMsg, lang->errorTitle, MB_OK | MB_ICONERROR);
             return FALSE;
         }
         
-        // 创建目标目录（递归创建所有父目录）
+        // 创建目标目录
         if (!EnsureDirectoryExists(browser->appTargetPath)) {
             DWORD err = GetLastError();
-            swprintf_s(debugMsg, 1024, L"[DEBUG] 无法创建目标目录:\n%s\n错误码: %lu", browser->appTargetPath, err);
-            MessageBoxW(g_hMainWindow, debugMsg, L"DEBUG - 错误", MB_OK | MB_ICONERROR);
+            swprintf_s(debugMsg, 1024, L"无法创建目标目录:\n%s\n错误码: %lu", browser->appTargetPath, err);
+            MessageBoxW(g_hMainWindow, debugMsg, lang->errorTitle, MB_OK | MB_ICONERROR);
             return FALSE;
         }
-        
-        // 移动文件（改为：复制 -> 改名备份 -> 创建链接）
-        MessageBoxW(g_hMainWindow, L"[DEBUG] 开始复制应用程序目录...", L"DEBUG", MB_OK);
         
         // 1. 复制目录
         BOOL copySuccess = FALSE;
@@ -191,12 +165,11 @@ static BOOL ExecuteMoveOperation(BrowserInfo* browser)
         wcscpy_s(parentPath, MAX_PATH, browser->appPath);
         PathRemoveFileSpecW(parentPath);
         
-        GrantFullControl(parentPath);  // 授权父目录，允许在其中重命名
-        GrantFullControl(browser->appPath); // 授权目标目录本身
+        GrantFullControl(parentPath);
+        GrantFullControl(browser->appPath);
         
         BOOL renameSuccess = MoveFileW(browser->appPath, appPathBak);
         
-        // 如果 MoveFileW 失败，尝试更高级的 shell 移动方式
         if (!renameSuccess) {
             SHFILEOPSTRUCTW fileOp = {0};
             fileOp.hwnd = g_hMainWindow;
@@ -234,20 +207,15 @@ static BOOL ExecuteMoveOperation(BrowserInfo* browser)
             return FALSE;
         }
         
-        MessageBoxW(g_hMainWindow, L"[DEBUG] 原应用目录已改名为 _bak 备份", L"DEBUG", MB_OK);
-
         // 3. 创建符号链接
-        MessageBoxW(g_hMainWindow, L"[DEBUG] 准备为应用程序创建Junction...", L"DEBUG", MB_OK);
         SetStatusProgress(step + 1, 10);
         SetStatusText(lang->creatingSymlink);
         
         if (!CreateJunction(browser->appPath, browser->appTargetPath)) {
             DWORD err = GetLastError();
-            // 失败了，尝试把备份改名回来
             MoveFileW(appPathBak, browser->appPath);
-            
             swprintf_s(debugMsg, 1024, L"创建Junction失败!\n错误码: %lu\n原始目录已恢复。", err);
-            MessageBoxW(g_hMainWindow, debugMsg, L"DEBUG - CreateJunction失败", MB_OK | MB_ICONERROR);
+            MessageBoxW(g_hMainWindow, debugMsg, lang->errorTitle, MB_OK | MB_ICONERROR);
             return FALSE;
         }
         
@@ -260,23 +228,18 @@ static BOOL ExecuteMoveOperation(BrowserInfo* browser)
         SetStatusProgress(step, 10);
         SetStatusText(lang->movingFiles);
         
-        // DEBUG: 检查源目录是否存在
         if (!PathFileExistsW(browser->dataPath)) {
-            swprintf_s(debugMsg, 1024, L"[DEBUG] 源数据目录不存在:\n%s", browser->dataPath);
-            MessageBoxW(g_hMainWindow, debugMsg, L"DEBUG - 错误", MB_OK | MB_ICONERROR);
+            swprintf_s(debugMsg, 1024, L"源数据目录不存在:\n%s", browser->dataPath);
+            MessageBoxW(g_hMainWindow, debugMsg, lang->errorTitle, MB_OK | MB_ICONERROR);
             return FALSE;
         }
         
-        // 创建目标目录（递归创建所有父目录）
         if (!EnsureDirectoryExists(browser->dataTargetPath)) {
             DWORD err = GetLastError();
-            swprintf_s(debugMsg, 1024, L"[DEBUG] 无法创建目标目录:\n%s\n错误码: %lu", browser->dataTargetPath, err);
-            MessageBoxW(g_hMainWindow, debugMsg, L"DEBUG - 错误", MB_OK | MB_ICONERROR);
+            swprintf_s(debugMsg, 1024, L"无法创建目标目录:\n%s\n错误码: %lu", browser->dataTargetPath, err);
+            MessageBoxW(g_hMainWindow, debugMsg, lang->errorTitle, MB_OK | MB_ICONERROR);
             return FALSE;
         }
-        
-        // 移动文件（改为：复制 -> 改名备份 -> 创建链接）
-        MessageBoxW(g_hMainWindow, L"[DEBUG] 开始复制用户数据目录...", L"DEBUG", MB_OK);
         
         // 1. 复制目录
         BOOL copySuccess = FALSE;
@@ -302,7 +265,6 @@ static BOOL ExecuteMoveOperation(BrowserInfo* browser)
         WCHAR dataPathBak[MAX_PATH];
         swprintf_s(dataPathBak, MAX_PATH, L"%s_bak", browser->dataPath);
         
-        // 如果备份目录已存在，先删除它
         if (PathFileExistsW(dataPathBak)) {
             DeleteDirectory(dataPathBak, NULL);
         }
@@ -314,55 +276,39 @@ static BOOL ExecuteMoveOperation(BrowserInfo* browser)
             return FALSE;
         }
         
-        MessageBoxW(g_hMainWindow, L"[DEBUG] 原数据目录已改名为 _bak 备份", L"DEBUG", MB_OK);
-
         // 3. 创建符号链接
-        MessageBoxW(g_hMainWindow, L"[DEBUG] 开始为用户数据创建Junction...", L"DEBUG", MB_OK);
         SetStatusProgress(step + 1, 10);
         SetStatusText(lang->creatingSymlink);
         
         if (!CreateJunction(browser->dataPath, browser->dataTargetPath)) {
             DWORD err = GetLastError();
-            // 失败了，尝试把备份改名回来
             MoveFileW(dataPathBak, browser->dataPath);
-            
             swprintf_s(debugMsg, 1024, L"创建Junction失败!\n错误码: %lu\n原始目录已恢复。", err);
-            MessageBoxW(g_hMainWindow, debugMsg, L"DEBUG - CreateJunction失败", MB_OK | MB_ICONERROR);
+            MessageBoxW(g_hMainWindow, debugMsg, lang->errorTitle, MB_OK | MB_ICONERROR);
             return FALSE;
         }
-        MessageBoxW(g_hMainWindow, L"[DEBUG] 用户数据Junction创建成功!", L"DEBUG", MB_OK);
         
         browser->dataMoved = TRUE;
         step += 2;
     }
     
-    MessageBoxW(g_hMainWindow, L"[DEBUG] 文件移动阶段完成，开始修复注册表...", L"DEBUG", MB_OK);
-    
     // 4. 修复注册表
     if (g_config.fixShortcuts) {
-        MessageBoxW(g_hMainWindow, L"[DEBUG] 开始修复注册表...", L"DEBUG", MB_OK);
         SetStatusProgress(step, 10);
         SetStatusText(lang->fixingRegistry);
-        
         FixAllRegistryPaths(browser);
-        MessageBoxW(g_hMainWindow, L"[DEBUG] 注册表修复完成!", L"DEBUG", MB_OK);
         step++;
     }
     
     // 5. 修复快捷方式
     if (g_config.fixShortcuts) {
-        MessageBoxW(g_hMainWindow, L"[DEBUG] 开始修复快捷方式...", L"DEBUG", MB_OK);
         SetStatusProgress(step, 10);
         SetStatusText(lang->fixingShortcuts);
-        
         FindAndFixShortcuts(browser);
-        MessageBoxW(g_hMainWindow, L"[DEBUG] 快捷方式修复完成!", L"DEBUG", MB_OK);
         step++;
     }
     
-    // 6. 清理备份目录（仅在所有核心步骤完成后）
-    MessageBoxW(g_hMainWindow, L"[DEBUG] 所有修复步骤已完成，准备清理备份目录...", L"DEBUG", MB_OK);
-    
+    // 6. 清理备份目录
     if (g_config.moveApp) {
         WCHAR appPathBak[MAX_PATH];
         swprintf_s(appPathBak, MAX_PATH, L"%s_bak", browser->appPath);
@@ -379,12 +325,9 @@ static BOOL ExecuteMoveOperation(BrowserInfo* browser)
         }
     }
     
-    // 7. 完成
-    MessageBoxW(g_hMainWindow, L"[DEBUG] 所有步骤完成，准备显示成功消息...", L"DEBUG", MB_OK);
     SetStatusProgress(10, 10);
     SetStatusText(lang->completed);
     
-    MessageBoxW(g_hMainWindow, L"[DEBUG] ExecuteMoveOperation 返回 TRUE", L"DEBUG", MB_OK);
     return TRUE;
 }
 
@@ -393,6 +336,8 @@ static BOOL ExecuteRestoreOperation(BrowserInfo* browser)
 {
     const LanguageStrings* lang = GetCurrentLanguageStrings();
     WCHAR debugMsg[1024];
+    
+    ShowStatusProgress(TRUE);
     int step = 1;
     
     // 1. 还原应用程序目录
@@ -401,20 +346,13 @@ static BOOL ExecuteRestoreOperation(BrowserInfo* browser)
         SetStatusText(lang->restoringApp);
         
         // 删除符号链接
-        if (!DeleteJunction(browser->appPath)) {
-            // Junction可能不存在，继续尝试
-        }
+        DeleteJunction(browser->appPath);
         
         // 移回文件
         if (!MoveDirectory(browser->appTargetPath, browser->appPath, MoveProgressCallback)) {
             DWORD err = GetLastError();
-            swprintf_s(debugMsg, 1024, 
-                L"[DEBUG] 还原应用程序目录失败!\n\n"
-                L"源: %s\n"
-                L"目标: %s\n"
-                L"错误码: %lu",
-                browser->appTargetPath, browser->appPath, err);
-            MessageBoxW(g_hMainWindow, debugMsg, L"DEBUG - 还原失败", MB_OK | MB_ICONERROR);
+            swprintf_s(debugMsg, 1024, L"还原应用程序目录失败!\n错误码: %lu", err);
+            MessageBoxW(g_hMainWindow, debugMsg, lang->errorTitle, MB_OK | MB_ICONERROR);
             return FALSE;
         }
         
@@ -428,20 +366,13 @@ static BOOL ExecuteRestoreOperation(BrowserInfo* browser)
         SetStatusText(lang->restoringData);
         
         // 删除符号链接
-        if (!DeleteJunction(browser->dataPath)) {
-            // Junction可能不存在，继续尝试
-        }
+        DeleteJunction(browser->dataPath);
         
         // 移回文件
         if (!MoveDirectory(browser->dataTargetPath, browser->dataPath, MoveProgressCallback)) {
             DWORD err = GetLastError();
-            swprintf_s(debugMsg, 1024, 
-                L"[DEBUG] 还原用户数据目录失败!\n\n"
-                L"源: %s\n"
-                L"目标: %s\n"
-                L"错误码: %lu",
-                browser->dataTargetPath, browser->dataPath, err);
-            MessageBoxW(g_hMainWindow, debugMsg, L"DEBUG - 还原失败", MB_OK | MB_ICONERROR);
+            swprintf_s(debugMsg, 1024, L"还原用户数据目录失败!\n错误码: %lu", err);
+            MessageBoxW(g_hMainWindow, debugMsg, lang->errorTitle, MB_OK | MB_ICONERROR);
             return FALSE;
         }
         

@@ -94,6 +94,7 @@ typedef struct {
     HWND hHelpButton;
     HWND hStatusBar;
     HWND hProgressBar;
+    HWND hStatusLabel;
 } MainWindowUI;
 
 #endif // BROWSER_TYPES_H

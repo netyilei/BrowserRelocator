@@ -115,7 +115,7 @@ void CreateMainWindowUI(HWND hwnd)
     // 操作按钮
     CreateActionButtons(hwnd, &g_ui, 15, yOffset);
     
-    // 创建状态栏
+    // 创建状态UI（进度条和文本）
     CreateStatusBar(hwnd);
     
     // 初始化路径显示（必须在所有UI创建完成后）
@@ -485,64 +485,62 @@ void OnLanguageChanged(LanguageType langType)
     UpdateWindow(g_hMainWindow);
 }
 
-// 创建状态栏
+// 创建状态UI
 void CreateStatusBar(HWND hwnd)
 {
-    // 创建状态栏
-    g_ui.hStatusBar = CreateWindowExW(
-        0, STATUSCLASSNAMEW, NULL,
-        WS_CHILD | WS_VISIBLE | SBARS_SIZEGRIP,
-        0, 0, 0, 0, hwnd, NULL, g_hInstance, NULL
-    );
+    // 获取窗口大小以确定位置
+    RECT rc;
+    GetClientRect(hwnd, &rc);
+    int width = rc.right - rc.left;
+    int height = rc.bottom - rc.top;
     
-    // 设置状态栏字体
+    // 字体
     HFONT hFont = CreateFontW(16, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
                              GB2312_CHARSET, OUT_DEFAULT_PRECIS,
                              CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
                              DEFAULT_PITCH | FF_DONTCARE, L"Microsoft YaHei UI");
-    SendMessageW(g_ui.hStatusBar, WM_SETFONT, (WPARAM)hFont, TRUE);
+
+    // 1. 创建状态文本标签
+    g_ui.hStatusLabel = CreateWindowExW(
+        0, L"STATIC", GetCurrentLanguageStrings()->ready,
+        WS_CHILD | WS_VISIBLE,
+        15, height - 55, width - 30, 20,
+        hwnd, NULL, g_hInstance, NULL
+    );
+    SendMessageW(g_ui.hStatusLabel, WM_SETFONT, (WPARAM)hFont, TRUE);
     
-    // 设置状态栏分区 - 状态文本 + 进度条区
-    int parts[] = { 400, -1 };
-    SendMessageW(g_ui.hStatusBar, SB_SETPARTS, 2, (LPARAM)parts);
-    
-    // 设置默认文本
-    SendMessageW(g_ui.hStatusBar, SB_SETTEXTW, 0, (LPARAM)GetCurrentLanguageStrings()->ready);
-    
-    // 创建进度条（嵌入在状态栏第二部分）
-    RECT rcPart;
-    SendMessageW(g_ui.hStatusBar, SB_GETRECT, 1, (LPARAM)&rcPart);
-    
+    // 2. 创建进度条（直接作为主窗口的子窗口，不再嵌入状态栏）
     g_ui.hProgressBar = CreateWindowExW(
         0, PROGRESS_CLASSW, NULL,
-        WS_CHILD | PBS_SMOOTH,
-        rcPart.left + 5, rcPart.top + 2, rcPart.right - rcPart.left - 10, rcPart.bottom - rcPart.top - 4,
-        g_ui.hStatusBar, NULL, g_hInstance, NULL
+        WS_CHILD | WS_VISIBLE | PBS_SMOOTH,
+        15, height - 30, width - 30, 18,
+        hwnd, NULL, g_hInstance, NULL
     );
     
     // 设置进度条范围
     SendMessageW(g_ui.hProgressBar, PBM_SETRANGE, 0, MAKELPARAM(0, 100));
     SendMessageW(g_ui.hProgressBar, PBM_SETPOS, 0, 0);
+    
+    // 初始隐藏进度条
+    ShowWindow(g_ui.hProgressBar, SW_HIDE);
 }
 
-// 设置状态栏文本
+// 设置状态文本
 void SetStatusText(LPCWSTR text)
 {
-    if (g_ui.hStatusBar) {
-        // 显示在第一部分
-        SendMessageW(g_ui.hStatusBar, SB_SETTEXTW, 0, (LPARAM)text);
+    if (g_ui.hStatusLabel) {
+        SetWindowTextW(g_ui.hStatusLabel, text);
     }
 }
 
-// 更新磁盘空间显示（更新路径选择器中的可用空间标签）
+// 更新磁盘空间显示
 void UpdateDiskSpaceDisplay()
 {
-    // 更新路径选择器中的磁盘空间显示
     BrowserInfo* browser = &g_browsers[g_config.selectedBrowser];
     UpdatePathInfoDisplay(&g_ui.pathSelector, browser);
 }
 
-// 设置状态栏进度
+// 设置进度
 void SetStatusProgress(int current, int total)
 {
     if (g_ui.hProgressBar && total > 0) {
@@ -556,15 +554,6 @@ void ShowStatusProgress(BOOL show)
 {
     if (g_ui.hProgressBar) {
         ShowWindow(g_ui.hProgressBar, show ? SW_SHOW : SW_HIDE);
-        if (show) {
-            // 重新计算进度条位置
-            RECT rcPart;
-            SendMessageW(g_ui.hStatusBar, SB_GETRECT, 1, (LPARAM)&rcPart);
-            SetWindowPos(g_ui.hProgressBar, NULL, 
-                rcPart.left + 5, rcPart.top + 2, 
-                rcPart.right - rcPart.left - 10, rcPart.bottom - rcPart.top - 4,
-                SWP_NOZORDER);
-        }
     }
 }
 
