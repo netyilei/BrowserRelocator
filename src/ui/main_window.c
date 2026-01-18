@@ -9,72 +9,15 @@
 #define ID_RADIO_CHROME 1001
 #define ID_RADIO_EDGE 1002
 #define ID_CHECK_MOVE_APP 2001
-#define ID_CHECK_MOVE_DATA 2002
-#define ID_CHECK_CLOSE_BROWSER 2003
-#define ID_CHECK_CREATE_BACKUP 2004
 #define ID_CHECK_FIX_SHORTCUTS 2005
-#define ID_EDIT_APP_PATH 3001
-#define ID_EDIT_DATA_PATH 3002
-#define ID_EDIT_APP_TARGET 3003
-#define ID_EDIT_DATA_TARGET 3004
-#define ID_BUTTON_BROWSE_APP 4001
-#define ID_BUTTON_BROWSE_DATA 4002
 #define ID_BUTTON_BROWSE_APP_TARGET 4003
 #define ID_BUTTON_BROWSE_DATA_TARGET 4004
 #define ID_BUTTON_MOVE 5001
 #define ID_BUTTON_RESTORE 5002
 #define ID_BUTTON_HELP 5003
-#define ID_MENU_LANGUAGE 6001
 #define ID_MENU_ENGLISH 6002
 #define ID_MENU_CHINESE 6003
-
-// 绘制圆角矩形
-void DrawRoundRect(HDC hdc, int x, int y, int width, int height, int radius)
-{
-    HPEN hPen = CreatePen(PS_SOLID, 1, COLOR_BORDER);
-    HBRUSH hBrush = CreateSolidBrush(COLOR_CARD_BG);
-    HPEN hOldPen = (HPEN)SelectObject(hdc, hPen);
-    HBRUSH hOldBrush = (HBRUSH)SelectObject(hdc, hBrush);
-    
-    RoundRect(hdc, x, y, x + width, y + height, radius, radius);
-    
-    SelectObject(hdc, hOldPen);
-    SelectObject(hdc, hOldBrush);
-    DeleteObject(hPen);
-    DeleteObject(hBrush);
-}
-
-// 绘制分组框
-void DrawGroupBox(HWND hwnd, HDC hdc, LPCWSTR title, RECT rect)
-{
-    HPEN hPen = CreatePen(PS_SOLID, 1, COLOR_BORDER);
-    HPEN hOldPen = (HPEN)SelectObject(hdc, hPen);
-    
-    // 绘制边框
-    Rectangle(hdc, rect.left, rect.top + 8, rect.right, rect.bottom);
-    
-    // 绘制标题背景
-    HBRUSH hBgBrush = CreateSolidBrush(COLOR_BG);
-    HBRUSH hOldBrush = (HBRUSH)SelectObject(hdc, hBgBrush);
-    RECT titleRect = {rect.left + 10, rect.top - 2, rect.left + 120, rect.top + 14};
-    FillRect(hdc, &titleRect, hBgBrush);
-    DeleteObject(hBgBrush);
-    
-    // 绘制标题
-    SetBkMode(hdc, TRANSPARENT);
-    SetTextColor(hdc, RGB(100, 100, 100));
-    HFONT hFont = CreateFontW(16, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
-                             DEFAULT_CHARSET, OUT_DEFAULT_PRECIS,
-                             CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
-                             DEFAULT_PITCH | FF_DONTCARE, L"Microsoft YaHei UI");
-    HFONT hOldFont = (HFONT)SelectObject(hdc, hFont);
-    TextOutW(hdc, rect.left + 15, rect.top - 2, title, (int)wcslen(title));
-    
-    SelectObject(hdc, hOldPen);
-    SelectObject(hdc, hOldFont);
-    DeleteObject(hPen);
-    DeleteObject(hFont);
-}
+#define ID_MENU_GITHUB 6004
 
 // 创建主窗口
 HWND CreateMainWindow(HINSTANCE hInstance)
@@ -98,8 +41,8 @@ HWND CreateMainWindow(HINSTANCE hInstance)
     }
     
     // 计算窗口大小
-    int windowWidth = 680;
-    int windowHeight = 720;
+    int windowWidth = 720;
+    int windowHeight = 665;
     
     RECT rect;
     SystemParametersInfoW(SPI_GETWORKAREA, 0, &rect, 0);
@@ -135,13 +78,19 @@ HWND CreateMainWindow(HINSTANCE hInstance)
 // 创建主菜单
 void CreateMainMenu(HWND hwnd)
 {
+    const LanguageStrings* lang = GetCurrentLanguageStrings();
     HMENU hMenuBar = CreateMenu();
     HMENU hLanguageMenu = CreatePopupMenu();
     
-    AppendMenuW(hLanguageMenu, MF_STRING, ID_MENU_ENGLISH, L"English");
-    AppendMenuW(hLanguageMenu, MF_STRING, ID_MENU_CHINESE, L"中文");
+    // 语言菜单 - 默认中文有对号
+    AppendMenuW(hLanguageMenu, MF_STRING, ID_MENU_ENGLISH, lang->menuEnglish);
+    AppendMenuW(hLanguageMenu, MF_STRING | MF_CHECKED, ID_MENU_CHINESE, lang->menuChinese);
     
-    AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hLanguageMenu, L"Language / 语言");
+    // 显示当前语言
+    AppendMenuW(hMenuBar, MF_POPUP, (UINT_PTR)hLanguageMenu, lang->menuLanguage);
+    
+    // GitHub菜单
+    AppendMenuW(hMenuBar, MF_STRING, ID_MENU_GITHUB, L"GitHub");
     
     SetMenu(hwnd, hMenuBar);
 }
@@ -149,88 +98,119 @@ void CreateMainMenu(HWND hwnd)
 // 创建主窗口UI
 void CreateMainWindowUI(HWND hwnd)
 {
-    int yOffset = 20;
+    int yOffset = 15;
     
     // 浏览器选择器
-    CreateBrowserSelectorUI(hwnd, &g_ui.browserSelector, 20, yOffset);
-    yOffset += 110;
+    CreateBrowserSelectorUI(hwnd, &g_ui.browserSelector, 15, yOffset);
+    yOffset += 90;
     
     // 搬家选项
-    CreateOptionsUI(hwnd, &g_ui.options, 20, yOffset);
-    yOffset += 100;
+    CreateOptionsUI(hwnd, &g_ui.options, 15, yOffset);
+    yOffset += 85;
     
     // 路径选择器
-    CreatePathSelectorUI(hwnd, &g_ui.pathSelector, 20, yOffset);
-    yOffset += 200;
+    CreatePathSelectorUI(hwnd, &g_ui.pathSelector, 15, yOffset);
+    yOffset += 305;
     
     // 操作按钮
-    CreateActionButtons(hwnd, &g_ui, 20, yOffset);
+    CreateActionButtons(hwnd, &g_ui, 15, yOffset);
+    
+    // 创建状态栏
+    CreateStatusBar(hwnd);
+    
+    // 初始化路径显示（必须在所有UI创建完成后）
+    UpdatePathSelectorUI(&g_ui.pathSelector, g_config.selectedBrowser);
 }
 
 // 创建选项UI
 void CreateOptionsUI(HWND hwnd, OptionsUI* ui, int x, int y)
 {
-    RECT groupRect = {x, y, x + 640, y + 85};
+    const LanguageStrings* lang = GetCurrentLanguageStrings();
+    HFONT hFont = CreateFontW(22, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+                             GB2312_CHARSET, OUT_DEFAULT_PRECIS,
+                             CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
+                             DEFAULT_PITCH | FF_DONTCARE, L"Microsoft YaHei UI");
+    HFONT hFontTitle = CreateFontW(18, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
+                             GB2312_CHARSET, OUT_DEFAULT_PRECIS,
+                             CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
+                             DEFAULT_PITCH | FF_DONTCARE, L"Microsoft YaHei UI");
     
-    // 创建复选框
+    // 标题在边框上方
+    HWND hTitle = CreateWindowExW(0, L"STATIC", lang->moveOptions,
+        WS_CHILD | WS_VISIBLE,
+        x + 5, y, 85, 24, hwnd, NULL, g_hInstance, NULL);
+    SendMessageW(hTitle, WM_SETFONT, (WPARAM)hFontTitle, TRUE);
+    
+    // 边框面板
+    HWND hPanel = CreateWindowExW(0, L"STATIC", NULL,
+        WS_CHILD | WS_VISIBLE | SS_ETCHEDFRAME,
+        x, y + 20, 680, 50, hwnd, NULL, g_hInstance, NULL);
+    (void)hPanel;
+    
+    int checkWidth = 140;
+    int checkHeight = 26;
+    int startY = y + 32;
+    
+    // 复选框（用户数据迁移为默认必选，不显示）
     ui->hMoveAppCheckbox = CreateWindowExW(
-        0, L"BUTTON", L"搬家应用程序目录",
+        0, L"BUTTON", lang->moveApp,
         WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
-        x + 20, y + 25, 200, 20, hwnd, (HMENU)ID_CHECK_MOVE_APP, g_hInstance, NULL
+        x + 15, startY, checkWidth, checkHeight, hwnd, (HMENU)ID_CHECK_MOVE_APP, g_hInstance, NULL
     );
     SendMessageW(ui->hMoveAppCheckbox, BM_SETCHECK, BST_CHECKED, 0);
+    SendMessageW(ui->hMoveAppCheckbox, WM_SETFONT, (WPARAM)hFont, TRUE);
     
-    ui->hMoveDataCheckbox = CreateWindowExW(
-        0, L"BUTTON", L"搬家用户数据",
-        WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
-        x + 240, y + 25, 200, 20, hwnd, (HMENU)ID_CHECK_MOVE_DATA, g_hInstance, NULL
-    );
-    SendMessageW(ui->hMoveDataCheckbox, BM_SETCHECK, BST_CHECKED, 0);
+    // 用户数据迁移是核心功能，默认启用，不显示选项
+    ui->hMoveDataCheckbox = NULL;
     
-    ui->hCloseBrowserCheckbox = CreateWindowExW(
-        0, L"BUTTON", L"搬家前自动关闭浏览器",
-        WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
-        x + 20, y + 55, 200, 20, hwnd, (HMENU)ID_CHECK_CLOSE_BROWSER, g_hInstance, NULL
-    );
-    SendMessageW(ui->hCloseBrowserCheckbox, BM_SETCHECK, BST_CHECKED, 0);
-    
-    ui->hCreateBackupCheckbox = CreateWindowExW(
-        0, L"BUTTON", L"搬家后创建备份",
-        WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
-        x + 240, y + 55, 200, 20, hwnd, (HMENU)ID_CHECK_CREATE_BACKUP, g_hInstance, NULL
-    );
+    // 关闭浏览器改为弹窗确认，不显示复选框
+    ui->hCloseBrowserCheckbox = NULL;
     
     ui->hFixShortcutsCheckbox = CreateWindowExW(
-        0, L"BUTTON", L"修复快捷方式",
+        0, L"BUTTON", lang->fixShortcuts,
         WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
-        x + 440, y + 55, 160, 20, hwnd, (HMENU)ID_CHECK_FIX_SHORTCUTS, g_hInstance, NULL
+        x + 165, startY, 150, checkHeight, hwnd, (HMENU)ID_CHECK_FIX_SHORTCUTS, g_hInstance, NULL
     );
     SendMessageW(ui->hFixShortcutsCheckbox, BM_SETCHECK, BST_CHECKED, 0);
+    SendMessageW(ui->hFixShortcutsCheckbox, WM_SETFONT, (WPARAM)hFont, TRUE);
 }
 
 // 创建操作按钮
 void CreateActionButtons(HWND hwnd, MainWindowUI* ui, int x, int y)
 {
+    const LanguageStrings* lang = GetCurrentLanguageStrings();
+    HFONT hFont = CreateFontW(22, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
+                             GB2312_CHARSET, OUT_DEFAULT_PRECIS,
+                             CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
+                             DEFAULT_PITCH | FF_DONTCARE, L"Microsoft YaHei UI");
+    
+    int btnWidth = 210;
+    int btnHeight = 40;
+    int spacing = 20;
+    
     // 移动按钮
     ui->hMoveButton = CreateWindowExW(
-        0, L"BUTTON", L"开始搬家",
+        0, L"BUTTON", lang->moveButton,
         WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-        x, y, 200, 45, hwnd, (HMENU)ID_BUTTON_MOVE, g_hInstance, NULL
+        x, y, btnWidth, btnHeight, hwnd, (HMENU)ID_BUTTON_MOVE, g_hInstance, NULL
     );
+    SendMessageW(ui->hMoveButton, WM_SETFONT, (WPARAM)hFont, TRUE);
     
     // 还原按钮
     ui->hRestoreButton = CreateWindowExW(
-        0, L"BUTTON", L"还原",
+        0, L"BUTTON", lang->restoreButton,
         WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-        x + 220, y, 200, 45, hwnd, (HMENU)ID_BUTTON_RESTORE, g_hInstance, NULL
+        x + btnWidth + spacing, y, btnWidth, btnHeight, hwnd, (HMENU)ID_BUTTON_RESTORE, g_hInstance, NULL
     );
+    SendMessageW(ui->hRestoreButton, WM_SETFONT, (WPARAM)hFont, TRUE);
     
     // 帮助按钮
     ui->hHelpButton = CreateWindowExW(
-        0, L"BUTTON", L"帮助",
+        0, L"BUTTON", lang->helpButton,
         WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-        x + 440, y, 200, 45, hwnd, (HMENU)ID_BUTTON_HELP, g_hInstance, NULL
+        x + (btnWidth + spacing) * 2, y, btnWidth, btnHeight, hwnd, (HMENU)ID_BUTTON_HELP, g_hInstance, NULL
     );
+    SendMessageW(ui->hHelpButton, WM_SETFONT, (WPARAM)hFont, TRUE);
 }
 
 // 主窗口过程
@@ -263,22 +243,10 @@ LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
                     break;
                     
                 case ID_BUTTON_HELP:
-                    MessageBoxW(hwnd, 
-                        L"BrowserGarage 使用说明:\n\n"
-                        L"1. 选择要搬家的浏览器\n"
-                        L"2. 勾选需要搬家的内容\n"
-                        L"3. 选择目标位置\n"
-                        L"4. 点击\"开始搬家\"\n\n"
-                        L"注意: 搬家前请关闭浏览器",
-                        L"帮助", MB_OK | MB_ICONINFORMATION);
-                    break;
-                    
-                case ID_BUTTON_BROWSE_APP:
-                    OnPathBrowseClicked(g_ui.pathSelector.hAppPathEdit, FALSE, TRUE);
-                    break;
-                    
-                case ID_BUTTON_BROWSE_DATA:
-                    OnPathBrowseClicked(g_ui.pathSelector.hDataPathEdit, FALSE, FALSE);
+                    {
+                    const LanguageStrings* lang = GetCurrentLanguageStrings();
+                    MessageBoxW(hwnd, lang->helpContent, lang->helpTitle, MB_OK | MB_ICONINFORMATION);
+                    }
                     break;
                     
                 case ID_BUTTON_BROWSE_APP_TARGET:
@@ -296,16 +264,115 @@ LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
                 case ID_MENU_CHINESE:
                     OnLanguageChanged(LANG_ZH);
                     break;
+                    
+                case ID_MENU_GITHUB:
+                    ShellExecuteW(NULL, L"open", L"https://github.com/netyilei/BrowserRelocator", NULL, NULL, SW_SHOWNORMAL);
+                    break;
+                    
+                case ID_CHECK_MOVE_APP:
+                    {
+                    // 应用程序目录复选框状态变化
+                    BOOL checked = (SendMessageW(g_ui.options.hMoveAppCheckbox, BM_GETCHECK, 0, 0) == BST_CHECKED);
+                    g_config.moveApp = checked;
+                    ShowAppPathSection(&g_ui.pathSelector, checked);
+                    
+                    // 动态调整窗口高度
+                    RECT rcWindow;
+                    GetWindowRect(hwnd, &rcWindow);
+                    int newHeight = checked ? 665 : 530;
+                    SetWindowPos(hwnd, NULL, 0, 0, 
+                        rcWindow.right - rcWindow.left, newHeight,
+                        SWP_NOMOVE | SWP_NOZORDER);
+                    
+                    // 移动按钮位置
+                    int btnY = checked ? 490 : 355;  // 按钮的y坐标
+                    SetWindowPos(g_ui.hMoveButton, NULL, 15, btnY, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+                    SetWindowPos(g_ui.hRestoreButton, NULL, 245, btnY, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+                    SetWindowPos(g_ui.hHelpButton, NULL, 475, btnY, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+                    
+                    InvalidateRect(hwnd, NULL, TRUE);
+                    }
+                    break;
+            }
+            // 处理编辑框内容变化或失去焦点
+            if (HIWORD(wParam) == EN_CHANGE || HIWORD(wParam) == EN_KILLFOCUS) {
+                HWND hCtrl = (HWND)lParam;
+                const LanguageStrings* lang = GetCurrentLanguageStrings();
+                WCHAR newPath[MAX_PATH];
+                WCHAR sizeText[64], spaceText[128];
+                
+                // 应用程序目标路径变化 - 更新应用程序可用空间
+                if (hCtrl == g_ui.pathSelector.hAppTargetPathEdit) {
+                    GetWindowTextW(g_ui.pathSelector.hAppTargetPathEdit, newPath, MAX_PATH);
+                    if (wcslen(newPath) >= 2) {
+                        WCHAR drivePath[4] = {newPath[0], newPath[1], L'\\', L'\0'};
+                        ULONGLONG freeSpace = GetDiskAvailableSpace(drivePath);
+                        FormatDiskSpace(freeSpace, sizeText, 64);
+                        swprintf_s(spaceText, 128, L"%s: %s", lang->availableSpace, sizeText);
+                        SetWindowTextW(g_ui.pathSelector.hAppSpaceLabel, spaceText);
+                    }
+                }
+                // 用户数据目标路径变化 - 更新用户数据可用空间
+                else if (hCtrl == g_ui.pathSelector.hDataTargetPathEdit) {
+                    GetWindowTextW(g_ui.pathSelector.hDataTargetPathEdit, newPath, MAX_PATH);
+                    if (wcslen(newPath) >= 2) {
+                        WCHAR drivePath[4] = {newPath[0], newPath[1], L'\\', L'\0'};
+                        ULONGLONG freeSpace = GetDiskAvailableSpace(drivePath);
+                        FormatDiskSpace(freeSpace, sizeText, 64);
+                        swprintf_s(spaceText, 128, L"%s: %s", lang->availableSpace, sizeText);
+                        SetWindowTextW(g_ui.pathSelector.hDataSpaceLabel, spaceText);
+                    }
+                }
             }
             }
             break;
             
         case WM_CTLCOLORSTATIC:
-            // 设置静态文本颜色
+            {
+            // 设置静态文本/图标透明背景
             HDC hdcStatic = (HDC)wParam;
-            SetBkColor(hdcStatic, COLOR_BG);
-            SetTextColor(hdcStatic, COLOR_TEXT);
-            return (INT_PTR)GetStockObject(NULL_BRUSH);
+            HWND hCtrl = (HWND)lParam;
+            
+            // 设置透明模式和背景色
+            SetBkMode(hdcStatic, TRANSPARENT);
+            
+            // 浏览器状态标签显示不同颜色
+            if (hCtrl == g_ui.browserSelector.hChromeStatusLabel) {
+                if (g_browsers[BROWSER_CHROME].isInstalled) {
+                    SetTextColor(hdcStatic, COLOR_SUCCESS);  // 绿色
+                } else {
+                    SetTextColor(hdcStatic, COLOR_ERROR);    // 红色
+                }
+            } else if (hCtrl == g_ui.browserSelector.hEdgeStatusLabel) {
+                if (g_browsers[BROWSER_EDGE].isInstalled) {
+                    SetTextColor(hdcStatic, COLOR_SUCCESS);  // 绿色
+                } else {
+                    SetTextColor(hdcStatic, COLOR_ERROR);    // 红色
+                }
+            } else {
+                SetTextColor(hdcStatic, COLOR_TEXT);
+            }
+            
+            // 只读编辑框显示灰色背景
+            static HBRUSH hReadOnlyBrush = NULL;
+            if (!hReadOnlyBrush) {
+                hReadOnlyBrush = CreateSolidBrush(RGB(240, 240, 240));  // 灰色背景
+            }
+            
+            if (hCtrl == g_ui.pathSelector.hAppPathEdit ||
+                hCtrl == g_ui.pathSelector.hDataPathEdit) {
+                // 只读路径编辑框使用灰色背景
+                SetBkColor(hdcStatic, RGB(240, 240, 240));
+                return (INT_PTR)hReadOnlyBrush;
+            }
+            
+            // 返回窗口背景色画刷（解决图标黑色背景问题）
+            static HBRUSH hBgBrush = NULL;
+            if (!hBgBrush) {
+                hBgBrush = CreateSolidBrush(COLOR_BG);
+            }
+            return (INT_PTR)hBgBrush;
+            }
             
         case WM_PAINT:
             {
@@ -349,6 +416,8 @@ void UpdateUIState()
 {
     // 更新浏览器选择器
     UpdateBrowserSelectorUI(&g_ui.browserSelector);
+    // 更新磁盘空间显示
+    UpdateDiskSpaceDisplay();
 }
 
 // 刷新浏览器信息
@@ -381,36 +450,128 @@ void UpdateWindowStrings()
     // 更新窗口标题
     SetWindowTextW(g_hMainWindow, lang->windowTitle);
     
-    // 更新复选框
-    SetWindowTextW(g_ui.options.hMoveAppCheckbox, lang->moveApp);
-    SetWindowTextW(g_ui.options.hMoveDataCheckbox, lang->moveData);
-    SetWindowTextW(g_ui.options.hCloseBrowserCheckbox, lang->closeBrowser);
-    SetWindowTextW(g_ui.options.hCreateBackupCheckbox, lang->createBackup);
-    SetWindowTextW(g_ui.options.hFixShortcutsCheckbox, lang->fixShortcuts);
+    // 更新复选框（跳过NULL指针）
+    if (g_ui.options.hMoveAppCheckbox) SetWindowTextW(g_ui.options.hMoveAppCheckbox, lang->moveApp);
+    if (g_ui.options.hFixShortcutsCheckbox) SetWindowTextW(g_ui.options.hFixShortcutsCheckbox, lang->fixShortcuts);
     
     // 更新按钮
     SetWindowTextW(g_ui.hMoveButton, lang->moveButton);
     SetWindowTextW(g_ui.hRestoreButton, lang->restoreButton);
     SetWindowTextW(g_ui.hHelpButton, lang->helpButton);
     
-    // 更新路径选择器中的标签
-    // Note: Static labels need to be recreated or have IDs
-    
-    // 更新浏览器选择器
+    // 更新浏览器选择器和路径选择器
     UpdateBrowserSelectorUI(&g_ui.browserSelector);
     UpdatePathSelectorUI(&g_ui.pathSelector, g_config.selectedBrowser);
 }
 
 // 语言切换事件
-void OnLanguageChanged(LanguageType lang)
+void OnLanguageChanged(LanguageType langType)
 {
-    SetLanguage(lang);
-    g_language = lang;
+    SetLanguage(langType);
     UpdateWindowStrings();
     
-    // 显示确认消息
-    const LanguageStrings* langStrings = GetCurrentLanguageStrings();
-    MessageBoxW(g_hMainWindow, 
-        lang == LANG_EN ? L"Language changed to English" : L"语言已切换为中文", 
-        L"Language / 语言", MB_OK | MB_ICONINFORMATION);
+    // 更新菜单对号
+    HMENU hMenu = GetMenu(g_hMainWindow);
+    HMENU hLangMenu = GetSubMenu(hMenu, 0);
+    const LanguageStrings* lang = GetCurrentLanguageStrings();
+    
+    CheckMenuItem(hLangMenu, ID_MENU_ENGLISH, langType == LANG_EN ? MF_CHECKED : MF_UNCHECKED);
+    CheckMenuItem(hLangMenu, ID_MENU_CHINESE, langType == LANG_ZH ? MF_CHECKED : MF_UNCHECKED);
+    ModifyMenuW(hMenu, 0, MF_BYPOSITION | MF_POPUP, (UINT_PTR)hLangMenu, lang->menuLanguage);
+    DrawMenuBar(g_hMainWindow);
+    
+    // 刷新整个窗口以清除文字重叠
+    InvalidateRect(g_hMainWindow, NULL, TRUE);
+    UpdateWindow(g_hMainWindow);
+}
+
+// 创建状态栏
+void CreateStatusBar(HWND hwnd)
+{
+    // 创建状态栏
+    g_ui.hStatusBar = CreateWindowExW(
+        0, STATUSCLASSNAMEW, NULL,
+        WS_CHILD | WS_VISIBLE | SBARS_SIZEGRIP,
+        0, 0, 0, 0, hwnd, NULL, g_hInstance, NULL
+    );
+    
+    // 设置状态栏字体
+    HFONT hFont = CreateFontW(16, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+                             GB2312_CHARSET, OUT_DEFAULT_PRECIS,
+                             CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
+                             DEFAULT_PITCH | FF_DONTCARE, L"Microsoft YaHei UI");
+    SendMessageW(g_ui.hStatusBar, WM_SETFONT, (WPARAM)hFont, TRUE);
+    
+    // 设置状态栏分区 - 状态文本 + 进度条区
+    int parts[] = { 400, -1 };
+    SendMessageW(g_ui.hStatusBar, SB_SETPARTS, 2, (LPARAM)parts);
+    
+    // 设置默认文本
+    SendMessageW(g_ui.hStatusBar, SB_SETTEXTW, 0, (LPARAM)GetCurrentLanguageStrings()->ready);
+    
+    // 创建进度条（嵌入在状态栏第二部分）
+    RECT rcPart;
+    SendMessageW(g_ui.hStatusBar, SB_GETRECT, 1, (LPARAM)&rcPart);
+    
+    g_ui.hProgressBar = CreateWindowExW(
+        0, PROGRESS_CLASSW, NULL,
+        WS_CHILD | PBS_SMOOTH,
+        rcPart.left + 5, rcPart.top + 2, rcPart.right - rcPart.left - 10, rcPart.bottom - rcPart.top - 4,
+        g_ui.hStatusBar, NULL, g_hInstance, NULL
+    );
+    
+    // 设置进度条范围
+    SendMessageW(g_ui.hProgressBar, PBM_SETRANGE, 0, MAKELPARAM(0, 100));
+    SendMessageW(g_ui.hProgressBar, PBM_SETPOS, 0, 0);
+}
+
+// 设置状态栏文本
+void SetStatusText(LPCWSTR text)
+{
+    if (g_ui.hStatusBar) {
+        // 显示在第一部分
+        SendMessageW(g_ui.hStatusBar, SB_SETTEXTW, 0, (LPARAM)text);
+    }
+}
+
+// 更新磁盘空间显示（更新路径选择器中的可用空间标签）
+void UpdateDiskSpaceDisplay()
+{
+    // 更新路径选择器中的磁盘空间显示
+    BrowserInfo* browser = &g_browsers[g_config.selectedBrowser];
+    UpdatePathInfoDisplay(&g_ui.pathSelector, browser);
+}
+
+// 设置状态栏进度
+void SetStatusProgress(int current, int total)
+{
+    if (g_ui.hProgressBar && total > 0) {
+        int percent = (current * 100) / total;
+        SendMessageW(g_ui.hProgressBar, PBM_SETPOS, percent, 0);
+    }
+}
+
+// 显示/隐藏进度条
+void ShowStatusProgress(BOOL show)
+{
+    if (g_ui.hProgressBar) {
+        ShowWindow(g_ui.hProgressBar, show ? SW_SHOW : SW_HIDE);
+        if (show) {
+            // 重新计算进度条位置
+            RECT rcPart;
+            SendMessageW(g_ui.hStatusBar, SB_GETRECT, 1, (LPARAM)&rcPart);
+            SetWindowPos(g_ui.hProgressBar, NULL, 
+                rcPart.left + 5, rcPart.top + 2, 
+                rcPart.right - rcPart.left - 10, rcPart.bottom - rcPart.top - 4,
+                SWP_NOZORDER);
+        }
+    }
+}
+
+// 重置状态栏
+void ResetStatusBar()
+{
+    SetStatusText(GetCurrentLanguageStrings()->ready);
+    SetStatusProgress(0, 100);
+    ShowStatusProgress(FALSE);
 }

@@ -3,8 +3,8 @@
 
 #include "../common.h"
 
-ULONGLONG GetDiskFreeSpace(LPCWSTR path);
-ULONGLONG GetDiskTotalSpace(LPCWSTR path);
+ULONGLONG GetDiskAvailableSpace(LPCWSTR path);
+ULONGLONG GetDiskTotalSpaceBytes(LPCWSTR path);
 void FormatDiskSpace(ULONGLONG bytes, WCHAR* buffer, int bufferSize);
 BOOL HasEnoughDiskSpace(LPCWSTR path, ULONGLONG requiredBytes);
 

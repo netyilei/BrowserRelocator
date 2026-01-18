@@ -96,27 +96,41 @@ BOOL FixAllShortcuts(BrowserType type, LPCWSTR oldPath, LPCWSTR newPath)
     WCHAR path[MAX_PATH];
     LPCWSTR shortcutName;
     
-    // 桌面快捷方式
+    // 桌面快捷方式 (当前用户)
     if (type == BROWSER_CHROME) {
         shortcutName = L"Google Chrome.lnk";
     } else {
         shortcutName = L"Microsoft Edge.lnk";
     }
     
-    SHGetFolderPathW(NULL, CSIDL_DESKTOP, NULL, 0, path);
-    wcscat_s(path, MAX_PATH, L"\\");
-    wcscat_s(path, MAX_PATH, shortcutName);
-    FixShortcutPath(path, oldPath, newPath);
+    if (SHGetFolderPathW(NULL, CSIDL_DESKTOP, NULL, 0, path) == S_OK) {
+        wcscat_s(path, MAX_PATH, L"\\");
+        wcscat_s(path, MAX_PATH, shortcutName);
+        FixShortcutPath(path, oldPath, newPath);
+    }
     
-    // 开始菜单快捷方式
-    SHGetFolderPathW(NULL, CSIDL_STARTMENU, NULL, 0, path);
-    wcscat_s(path, MAX_PATH, L"\\Programs\\");
-    FindShortcutsInFolder(path, type, oldPath, newPath);
+    // 桌面快捷方式 (所有用户)
+    if (SHGetFolderPathW(NULL, CSIDL_COMMON_DESKTOPDIRECTORY, NULL, 0, path) == S_OK) {
+        wcscat_s(path, MAX_PATH, L"\\");
+        wcscat_s(path, MAX_PATH, shortcutName);
+        FixShortcutPath(path, oldPath, newPath);
+    }
+    
+    // 开始菜单快捷方式 (当前用户)
+    if (SHGetFolderPathW(NULL, CSIDL_PROGRAMS, NULL, 0, path) == S_OK) {
+        FindShortcutsInFolder(path, type, oldPath, newPath);
+    }
+    
+    // 开始菜单快捷方式 (所有用户)
+    if (SHGetFolderPathW(NULL, CSIDL_COMMON_PROGRAMS, NULL, 0, path) == S_OK) {
+        FindShortcutsInFolder(path, type, oldPath, newPath);
+    }
     
     // 任务栏快捷方式（Windows 10/11）
-    SHGetFolderPathW(NULL, CSIDL_APPDATA, NULL, 0, path);
-    wcscat_s(path, MAX_PATH, L"\\Microsoft\\Internet Explorer\\Quick Launch\\User Pinned\\TaskBar");
-    FindShortcutsInFolder(path, type, oldPath, newPath);
+    if (SHGetFolderPathW(NULL, CSIDL_APPDATA, NULL, 0, path) == S_OK) {
+        wcscat_s(path, MAX_PATH, L"\\Microsoft\\Internet Explorer\\Quick Launch\\User Pinned\\TaskBar");
+        FindShortcutsInFolder(path, type, oldPath, newPath);
+    }
     
     return TRUE;
 }

@@ -11,21 +11,51 @@ typedef struct {
 
 // Chrome 注册表路径映射
 static RegistryEntry chromeRegEntries[] = {
+    // 安装位置（其他程序可能读取）
     {HKEY_LOCAL_MACHINE, L"SOFTWARE\\Google\\Update\\Clients\\{8A69D345-D564-463C-AFF1-A69D9E530F96}", L"InstallLocation", NULL, NULL},
-    {HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Google Chrome", L"InstallLocation", NULL, NULL},
+    {HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\Google\\Update\\Clients\\{8A69D345-D564-463C-AFF1-A69D9E530F96}", L"InstallLocation", NULL, NULL},
+    {HKEY_CURRENT_USER, L"Software\\Google\\Update\\Clients\\{8A69D345-D564-463C-AFF1-A69D9E530F96}", L"InstallLocation", NULL, NULL},
+    
+    // 默认浏览器注册
     {HKEY_LOCAL_MACHINE, L"SOFTWARE\\Clients\\StartMenuInternet\\Google Chrome\\DefaultIcon", NULL, NULL, NULL},
     {HKEY_LOCAL_MACHINE, L"SOFTWARE\\Clients\\StartMenuInternet\\Google Chrome\\shell\\open\\command", NULL, NULL, NULL},
+    {HKEY_LOCAL_MACHINE, L"SOFTWARE\\Clients\\StartMenuInternet\\Google Chrome\\InstallInfo", L"IconsFile", NULL, NULL},
+    {HKEY_LOCAL_MACHINE, L"SOFTWARE\\Clients\\StartMenuInternet\\Google Chrome\\Capabilities", L"ApplicationIcon", NULL, NULL},
+    
+    // 文件关联和协议处理
     {HKEY_CLASSES_ROOT, L"ChromeHTML\\shell\\open\\command", NULL, NULL, NULL},
-    {HKEY_LOCAL_MACHINE, L"SOFTWARE\\Google\\Chrome", L"version", NULL, NULL},
+    {HKEY_CLASSES_ROOT, L"ChromeHTML\\DefaultIcon", NULL, NULL, NULL},
+    {HKEY_CLASSES_ROOT, L"ChromeHTML\\Application", L"ApplicationIcon", NULL, NULL},
+    
+    // App Paths
+    {HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\chrome.exe", NULL, NULL, NULL},
+    {HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\chrome.exe", L"Path", NULL, NULL},
 };
 
 // Edge 注册表路径映射
 static RegistryEntry edgeRegEntries[] = {
+    // 安装位置（其他程序可能读取）
     {HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\EdgeUpdate\\Clients\\{56EB18F8-B008-4CBD-B6D2-8C97FE7E9062}", L"InstallLocation", NULL, NULL},
     {HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\Microsoft\\EdgeUpdate\\Clients\\{56EB18F8-B008-4CBD-B6D2-8C97FE7E9062}", L"InstallLocation", NULL, NULL},
-    {HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Microsoft Edge", L"InstallLocation", NULL, NULL},
+    {HKEY_CURRENT_USER, L"Software\\Microsoft\\EdgeUpdate\\Clients\\{56EB18F8-B008-4CBD-B6D2-8C97FE7E9062}", L"InstallLocation", NULL, NULL},
+    
+    // 默认浏览器注册
+    {HKEY_LOCAL_MACHINE, L"SOFTWARE\\Clients\\StartMenuInternet\\Microsoft Edge\\DefaultIcon", NULL, NULL, NULL},
+    {HKEY_LOCAL_MACHINE, L"SOFTWARE\\Clients\\StartMenuInternet\\Microsoft Edge\\shell\\open\\command", NULL, NULL, NULL},
+    {HKEY_LOCAL_MACHINE, L"SOFTWARE\\Clients\\StartMenuInternet\\Microsoft Edge\\InstallInfo", L"IconsFile", NULL, NULL},
+    {HKEY_LOCAL_MACHINE, L"SOFTWARE\\Clients\\StartMenuInternet\\Microsoft Edge\\Capabilities", L"ApplicationIcon", NULL, NULL},
+    
+    // 文件关联和协议处理
     {HKEY_CLASSES_ROOT, L"MSEdgeHTM\\shell\\open\\command", NULL, NULL, NULL},
     {HKEY_CLASSES_ROOT, L"MSEdgeHTM\\DefaultIcon", NULL, NULL, NULL},
+    {HKEY_CLASSES_ROOT, L"MSEdgeHTM\\Application", L"ApplicationIcon", NULL, NULL},
+    {HKEY_CLASSES_ROOT, L"MSEdgePDF\\shell\\open\\command", NULL, NULL, NULL},
+    {HKEY_CLASSES_ROOT, L"MSEdgePDF\\DefaultIcon", NULL, NULL, NULL},
+    {HKEY_CLASSES_ROOT, L"MSEdgeMHT\\shell\\open\\command", NULL, NULL, NULL},
+    
+    // App Paths
+    {HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\msedge.exe", NULL, NULL, NULL},
+    {HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\msedge.exe", L"Path", NULL, NULL},
 };
 
 // 修复单个注册表项
@@ -145,19 +175,5 @@ BOOL FixAllRegistryPaths(BrowserInfo* browser)
         FixBrowserRegistry(browser->type, oldPath, newPath);
     }
     
-    return TRUE;
-}
-
-// 备份注册表
-BOOL BackupRegistry(BrowserType type)
-{
-    // TODO: 实现注册表备份功能
-    return TRUE;
-}
-
-// 还原注册表备份
-BOOL RestoreRegistryBackup(BrowserType type)
-{
-    // TODO: 实现注册表还原功能
     return TRUE;
 }

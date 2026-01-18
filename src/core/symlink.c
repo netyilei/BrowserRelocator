@@ -1,1 +1,288 @@
-"#include \"../../include/core/symlink.h\"\n#include <stdio.h>\n\n// 创建Junction（目录硬链接）\nBOOL CreateJunction(LPCWSTR linkPath, LPCWSTR targetPath)\n{\n    // 确保目标路径存在\n    if (!PathFileExistsW(targetPath)) {\n        return FALSE;\n    }\n    \n    // 创建Junction\n    HANDLE hLink = CreateFileW(linkPath,\n                               GENERIC_WRITE,\n                               0,\n                               NULL,\n                               OPEN_ALWAYS,\n                               FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT,\n                               NULL);\n    \n    if (hLink == INVALID_HANDLE_VALUE) {\n        return FALSE;\n    }\n    \n    // 构建REPARSE_DATA_BUFFER结构\n    USHORT targetLen = (USHORT)(wcslen(targetPath) * sizeof(WCHAR));\n    USHORT bufferLength = REPARSE_DATA_BUFFER_HEADER_SIZE + targetLen + 12;\n    \n    PREPARSE_DATA_BUFFER buffer = (PREPARSE_DATA_BUFFER)malloc(bufferLength);\n    if (!buffer) {\n        CloseHandle(hLink);\n        return FALSE;\n    }\n    \n    ZeroMemory(buffer, bufferLength);\n    buffer->ReparseTag = IO_REPARSE_TAG_MOUNT_POINT;\n    buffer->ReparseDataLength = targetLen + 8;\n    buffer->MountPointReparseBuffer.SubstituteNameLength = targetLen;\n    buffer->MountPointReparseBuffer.SubstituteNameOffset = 0;\n    buffer->MountPointReparseBuffer.PrintNameLength = 0;\n    buffer->MountPointReparseBuffer.PrintNameOffset = targetLen + 2;\n    \n    // 构建路径: \\??\D:\\Path\n    wcscpy_s(buffer->MountPointReparseBuffer.PathBuffer, MAX_PATH, L\"\\\\??\\\\\");\n    wcscat_s(buffer->MountPointReparseBuffer.PathBuffer, MAX_PATH, targetPath);\n    \n    DWORD bytesReturned;\n    BOOL result = DeviceIoControl(hLink,\n                                  FSCTL_SET_REPARSE_POINT,\n                                  buffer,\n                                  bufferLength,\n                                  NULL,\n                                  0,\n                                  &bytesReturned,\n                                  NULL);\n    \n    free(buffer);\n    CloseHandle(hLink);\n    \n    return result;\n}\n\n// 删除Junction\nBOOL DeleteJunction(LPCWSTR linkPath)\n{\n    if (!IsJunction(linkPath)) {\n        return FALSE;\n    }\n    \n    // 清除REPARSE_POINT属性\n    HANDLE hLink = CreateFileW(linkPath,\n                               GENERIC_WRITE,\n                               0,\n                               NULL,\n                               OPEN_EXISTING,\n                               FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT,\n                               NULL);\n    \n    if (hLink == INVALID_HANDLE_VALUE) {\n        return FALSE;\n    }\n    \n    REPARSE_DATA_BUFFER buffer = {0};\n    buffer.ReparseTag = IO_REPARSE_TAG_MOUNT_POINT;\n    \n    DWORD bytesReturned;\n    BOOL result = DeviceIoControl(hLink,\n                                  FSCTL_DELETE_REPARSE_POINT,\n                                  &buffer,\n                                  REPARSE_DATA_BUFFER_HEADER_SIZE,\n                                  NULL,\n                                  0,\n                                  &bytesReturned,\n                                  NULL);\n    \n    CloseHandle(hLink);\n    \n    if (result) {\n        // 删除目录\n        return RemoveDirectoryW(linkPath);\n    }\n    \n    return FALSE;\n}\n\n// 检查是否是Junction\nBOOL IsJunction(LPCWSTR path)\n{\n    DWORD attrs = GetFileAttributesW(path);\n    \n    if (attrs == INVALID_FILE_ATTRIBUTES) {\n        return FALSE;\n    }\n    \n    return (attrs & FILE_ATTRIBUTE_REPARSE_POINT) != 0;\n}\n\n// 解析Junction目标路径\nBOOL ResolveJunction(LPCWSTR linkPath, WCHAR* targetPath, int pathSize)\n{\n    if (!IsJunction(linkPath)) {\n        return FALSE;\n    }\n    \n    HANDLE hLink = CreateFileW(linkPath,\n                               GENERIC_READ,\n                               0,\n                               NULL,\n                               OPEN_EXISTING,\n                               FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT,\n                               NULL);\n    \n    if (hLink == INVALID_HANDLE_VALUE) {\n        return FALSE;\n    }\n    \n    BYTE buffer[MAX_PATH * 2];\n    DWORD bytesReturned;\n    \n    if (DeviceIoControl(hLink,\n                        FSCTL_GET_REPARSE_POINT,\n                        NULL,\n                        0,\n                        buffer,\n                        sizeof(buffer),\n                        &bytesReturned,\n                        NULL)) {\n        \n        PREPARSE_DATA_BUFFER reparseData = (PREPARSE_DATA_BUFFER)buffer;\n        \n        if (reparseData->ReparseTag == IO_REPARSE_TAG_MOUNT_POINT) {\n            WCHAR* pathBuffer = reparseData->MountPointReparseBuffer.PathBuffer;\n            \n            // 跳过 \\??\\ 前缀\n            if (wcsstr(pathBuffer, L\"\\\\??\\\\\") == pathBuffer) {\n                wcscpy_s(targetPath, pathSize, pathBuffer + 4);\n            } else {\n                wcscpy_s(targetPath, pathSize, pathBuffer);\n            }\n            \n            CloseHandle(hLink);\n            return TRUE;\n        }\n    }\n    \n    CloseHandle(hLink);\n    return FALSE;\n}\n\n// 创建符号链接（需要管理员权限）\nBOOL CreateSymlink(LPCWSTR linkPath, LPCWSTR targetPath)\n{\n    // 优先使用Junction，因为更可靠\n    DWORD attrs = GetFileAttributesW(targetPath);\n    if (attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY)) {\n        return CreateJunction(linkPath, targetPath);\n    }\n    \n    // 文件符号链接\n    return CreateSymbolicLinkW(linkPath, targetPath, 0);\n}\n\n// 删除符号链接\nBOOL DeleteSymlink(LPCWSTR linkPath)\n{\n    if (IsJunction(linkPath)) {\n        return DeleteJunction(linkPath);\n    }\n    \n    return DeleteFileW(linkPath);\n}"
+#include "../../include/core/symlink.h"
+#include <winioctl.h>
+
+// Junction 重解析点结构
+typedef struct _REPARSE_DATA_BUFFER {
+    ULONG ReparseTag;
+    USHORT ReparseDataLength;
+    USHORT Reserved;
+    union {
+        struct {
+            USHORT SubstituteNameOffset;
+            USHORT SubstituteNameLength;
+            USHORT PrintNameOffset;
+            USHORT PrintNameLength;
+            ULONG Flags;
+            WCHAR PathBuffer[1];
+        } SymbolicLinkReparseBuffer;
+        struct {
+            USHORT SubstituteNameOffset;
+            USHORT SubstituteNameLength;
+            USHORT PrintNameOffset;
+            USHORT PrintNameLength;
+            WCHAR PathBuffer[1];
+        } MountPointReparseBuffer;
+        struct {
+            UCHAR DataBuffer[1];
+        } GenericReparseBuffer;
+    };
+} REPARSE_DATA_BUFFER, *PREPARSE_DATA_BUFFER;
+
+#define REPARSE_DATA_BUFFER_HEADER_SIZE FIELD_OFFSET(REPARSE_DATA_BUFFER, GenericReparseBuffer)
+
+// 创建 Junction 链接
+BOOL CreateJunction(LPCWSTR linkPath, LPCWSTR targetPath)
+{
+    HANDLE hDir;
+    BYTE reparseBuffer[MAXIMUM_REPARSE_DATA_BUFFER_SIZE];
+    PREPARSE_DATA_BUFFER pReparseData = (PREPARSE_DATA_BUFFER)reparseBuffer;
+    DWORD bytesReturned;
+    
+    // 格式化目标路径（需要 \??\ 前缀）
+    WCHAR targetPathFormatted[MAX_PATH * 2];
+    swprintf_s(targetPathFormatted, MAX_PATH * 2, L"\\??\\%s", targetPath);
+    
+    size_t targetPathLen = wcslen(targetPathFormatted) * sizeof(WCHAR);
+    size_t printNameLen = wcslen(targetPath) * sizeof(WCHAR);
+    
+    // 创建空目录（如果不存在）
+    if (!PathFileExistsW(linkPath)) {
+        if (!CreateDirectoryW(linkPath, NULL)) {
+            DWORD error = GetLastError();
+            if (error != ERROR_ALREADY_EXISTS) {
+                return FALSE;
+            }
+        }
+    }
+    
+    // 打开目录句柄
+    hDir = CreateFileW(
+        linkPath,
+        GENERIC_READ | GENERIC_WRITE,
+        0,
+        NULL,
+        OPEN_EXISTING,
+        FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT,
+        NULL
+    );
+    
+    if (hDir == INVALID_HANDLE_VALUE) {
+        return FALSE;
+    }
+    
+    // 填充重解析点数据
+    ZeroMemory(reparseBuffer, sizeof(reparseBuffer));
+    pReparseData->ReparseTag = IO_REPARSE_TAG_MOUNT_POINT;
+    pReparseData->MountPointReparseBuffer.SubstituteNameOffset = 0;
+    pReparseData->MountPointReparseBuffer.SubstituteNameLength = (USHORT)targetPathLen;
+    pReparseData->MountPointReparseBuffer.PrintNameOffset = (USHORT)(targetPathLen + sizeof(WCHAR));
+    pReparseData->MountPointReparseBuffer.PrintNameLength = (USHORT)printNameLen;
+    
+    memcpy(pReparseData->MountPointReparseBuffer.PathBuffer, targetPathFormatted, targetPathLen + sizeof(WCHAR));
+    memcpy((BYTE*)pReparseData->MountPointReparseBuffer.PathBuffer + targetPathLen + sizeof(WCHAR), targetPath, printNameLen + sizeof(WCHAR));
+    
+    pReparseData->ReparseDataLength = (USHORT)(
+        FIELD_OFFSET(REPARSE_DATA_BUFFER, MountPointReparseBuffer.PathBuffer) - REPARSE_DATA_BUFFER_HEADER_SIZE +
+        targetPathLen + sizeof(WCHAR) + printNameLen + sizeof(WCHAR)
+    );
+    
+    // 设置重解析点
+    BOOL result = DeviceIoControl(
+        hDir,
+        FSCTL_SET_REPARSE_POINT,
+        pReparseData,
+        REPARSE_DATA_BUFFER_HEADER_SIZE + pReparseData->ReparseDataLength,
+        NULL,
+        0,
+        &bytesReturned,
+        NULL
+    );
+    
+    CloseHandle(hDir);
+    return result;
+}
+
+// 删除 Junction 链接
+BOOL DeleteJunction(LPCWSTR linkPath)
+{
+    HANDLE hDir;
+    BYTE reparseBuffer[REPARSE_DATA_BUFFER_HEADER_SIZE];
+    PREPARSE_DATA_BUFFER pReparseData = (PREPARSE_DATA_BUFFER)reparseBuffer;
+    DWORD bytesReturned;
+    
+    // 打开目录句柄
+    hDir = CreateFileW(
+        linkPath,
+        GENERIC_READ | GENERIC_WRITE,
+        0,
+        NULL,
+        OPEN_EXISTING,
+        FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT,
+        NULL
+    );
+    
+    if (hDir == INVALID_HANDLE_VALUE) {
+        return FALSE;
+    }
+    
+    // 填充删除重解析点数据
+    ZeroMemory(reparseBuffer, sizeof(reparseBuffer));
+    pReparseData->ReparseTag = IO_REPARSE_TAG_MOUNT_POINT;
+    pReparseData->ReparseDataLength = 0;
+    
+    // 删除重解析点
+    BOOL result = DeviceIoControl(
+        hDir,
+        FSCTL_DELETE_REPARSE_POINT,
+        pReparseData,
+        REPARSE_DATA_BUFFER_HEADER_SIZE,
+        NULL,
+        0,
+        &bytesReturned,
+        NULL
+    );
+    
+    CloseHandle(hDir);
+    
+    // 删除空目录
+    if (result) {
+        RemoveDirectoryW(linkPath);
+    }
+    
+    return result;
+}
+
+// 检查路径是否是 Junction
+BOOL IsJunction(LPCWSTR path)
+{
+    DWORD attributes = GetFileAttributesW(path);
+    
+    if (attributes == INVALID_FILE_ATTRIBUTES) {
+        return FALSE;
+    }
+    
+    if (!(attributes & FILE_ATTRIBUTE_DIRECTORY)) {
+        return FALSE;
+    }
+    
+    if (!(attributes & FILE_ATTRIBUTE_REPARSE_POINT)) {
+        return FALSE;
+    }
+    
+    // 进一步检查重解析点类型
+    WIN32_FIND_DATAW findData;
+    HANDLE hFind = FindFirstFileW(path, &findData);
+    
+    if (hFind == INVALID_HANDLE_VALUE) {
+        return FALSE;
+    }
+    
+    FindClose(hFind);
+    
+    // 检查是否是 Junction (IO_REPARSE_TAG_MOUNT_POINT)
+    if (findData.dwReserved0 == IO_REPARSE_TAG_MOUNT_POINT) {
+        return TRUE;
+    }
+    
+    return FALSE;
+}
+
+// 解析 Junction 目标路径
+BOOL ResolveJunction(LPCWSTR linkPath, WCHAR* targetPath, int pathSize)
+{
+    HANDLE hDir;
+    BYTE reparseBuffer[MAXIMUM_REPARSE_DATA_BUFFER_SIZE];
+    PREPARSE_DATA_BUFFER pReparseData = (PREPARSE_DATA_BUFFER)reparseBuffer;
+    DWORD bytesReturned;
+    
+    // 打开目录句柄
+    hDir = CreateFileW(
+        linkPath,
+        GENERIC_READ,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        NULL,
+        OPEN_EXISTING,
+        FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT,
+        NULL
+    );
+    
+    if (hDir == INVALID_HANDLE_VALUE) {
+        return FALSE;
+    }
+    
+    // 获取重解析点数据
+    ZeroMemory(reparseBuffer, sizeof(reparseBuffer));
+    
+    BOOL result = DeviceIoControl(
+        hDir,
+        FSCTL_GET_REPARSE_POINT,
+        NULL,
+        0,
+        pReparseData,
+        sizeof(reparseBuffer),
+        &bytesReturned,
+        NULL
+    );
+    
+    CloseHandle(hDir);
+    
+    if (!result) {
+        return FALSE;
+    }
+    
+    // 验证重解析点类型
+    if (pReparseData->ReparseTag != IO_REPARSE_TAG_MOUNT_POINT) {
+        return FALSE;
+    }
+    
+    // 提取目标路径（跳过 \??\ 前缀）
+    WCHAR* printName = pReparseData->MountPointReparseBuffer.PathBuffer +
+        (pReparseData->MountPointReparseBuffer.PrintNameOffset / sizeof(WCHAR));
+    int printNameLen = pReparseData->MountPointReparseBuffer.PrintNameLength / sizeof(WCHAR);
+    
+    if (printNameLen > 0 && printNameLen < pathSize) {
+        wcsncpy_s(targetPath, pathSize, printName, printNameLen);
+        targetPath[printNameLen] = L'\0';
+        return TRUE;
+    }
+    
+    // 如果 PrintName 为空，尝试从 SubstituteName 提取（去除 \??\ 前缀）
+    WCHAR* substituteName = pReparseData->MountPointReparseBuffer.PathBuffer +
+        (pReparseData->MountPointReparseBuffer.SubstituteNameOffset / sizeof(WCHAR));
+    int substituteNameLen = pReparseData->MountPointReparseBuffer.SubstituteNameLength / sizeof(WCHAR);
+    
+    // 跳过 \??\ 前缀（4个字符）
+    if (substituteNameLen > 4 && wcsncmp(substituteName, L"\\??\\", 4) == 0) {
+        substituteName += 4;
+        substituteNameLen -= 4;
+    }
+    
+    if (substituteNameLen > 0 && substituteNameLen < pathSize) {
+        wcsncpy_s(targetPath, pathSize, substituteName, substituteNameLen);
+        targetPath[substituteNameLen] = L'\0';
+        return TRUE;
+    }
+    
+    return FALSE;
+}
+
+// 创建符号链接（需要管理员权限或开发者模式）
+BOOL CreateSymlink(LPCWSTR linkPath, LPCWSTR targetPath)
+{
+    // 使用 CreateSymbolicLinkW 创建符号链接
+    // 注意：目录需要 SYMBOLIC_LINK_FLAG_DIRECTORY 标志
+    DWORD flags = SYMBOLIC_LINK_FLAG_DIRECTORY;
+    
+    // Windows 10 1703+ 支持不需要管理员权限创建符号链接
+    // 需要启用开发者模式
+    flags |= SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE;
+    
+    return CreateSymbolicLinkW(linkPath, targetPath, flags);
+}
+
+// 删除符号链接
+BOOL DeleteSymlink(LPCWSTR linkPath)
+{
+    // 符号链接本质上是目录，使用 RemoveDirectory 删除
+    return RemoveDirectoryW(linkPath);
+}

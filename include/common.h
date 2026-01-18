@@ -8,15 +8,55 @@
 #include <shlwapi.h>
 #include <commctrl.h>
 #include <shellapi.h>
-#include <gdiplus.h>
+#include <shlobj.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <tchar.h>
 
-#pragma comment(lib, "gdiplus.lib")
-#pragma comment(lib, "comctl32.lib")
-#pragma comment(lib, "shlwapi.lib")
+// GDI+ C API 声明
+typedef struct GdiplusStartupInput {
+    UINT32 GdiplusVersion;
+    void* DebugEventCallback;
+    BOOL SuppressBackgroundThread;
+    BOOL SuppressExternalCodecs;
+} GdiplusStartupInput;
+
+typedef enum {
+    Ok = 0,
+    GenericError = 1,
+    InvalidParameter = 2,
+    OutOfMemory = 3,
+    ObjectBusy = 4,
+    InsufficientBuffer = 5,
+    NotImplemented = 6,
+    Win32Error = 7,
+    WrongState = 8,
+    Aborted = 9,
+    FileNotFound = 10,
+    ValueOverflow = 11,
+    AccessDenied = 12,
+    UnknownImageFormat = 13,
+    FontFamilyNotFound = 14,
+    FontStyleNotFound = 15,
+    NotTrueTypeFont = 16,
+    UnsupportedGdiplusVersion = 17,
+    GdiplusNotInitialized = 18,
+    PropertyNotFound = 19,
+    PropertyNotSupported = 20,
+    ProfileNotFound = 21
+} GpStatus;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+GpStatus WINAPI GdiplusStartup(ULONG_PTR* token, const GdiplusStartupInput* input, void* output);
+void WINAPI GdiplusShutdown(ULONG_PTR token);
+
+#ifdef __cplusplus
+}
+#endif
 
 #define MAX_PATH_LENGTH 1024
 #define APP_NAME L"BrowserGarage"
@@ -25,7 +65,6 @@
 #define IDI_APP_ICON 101
 #define IDI_CHROME_ICON 102
 #define IDI_EDGE_ICON 103
-#define IDI_FOLDER_ICON 104
 
 // 颜色定义
 #define COLOR_BG RGB(255, 255, 255)

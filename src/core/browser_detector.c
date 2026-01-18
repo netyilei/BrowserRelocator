@@ -1,13 +1,14 @@
 #include "../../include/core/browser_detector.h"
+#include "../../include/core/symlink.h"
 #include "../../include/browser_types.h"
-#include <verrsrc.h>
 
 // 默认路径定义
 #define CHROME_APP_PATH_64  L"C:\\Program Files\\Google\\Chrome\\Application"
 #define CHROME_APP_PATH_32  L"C:\\Program Files (x86)\\Google\\Chrome\\Application"
 #define CHROME_DATA_PATH    L"%LOCALAPPDATA%\\Google\\Chrome\\User Data"
 
-#define EDGE_APP_PATH       L"C:\\Program Files (x86)\\Microsoft\\Edge\\Application"
+#define EDGE_APP_PATH_64    L"C:\\Program Files\\Microsoft\\Edge\\Application"
+#define EDGE_APP_PATH_32    L"C:\\Program Files (x86)\\Microsoft\\Edge\\Application"
 #define EDGE_DATA_PATH      L"%LOCALAPPDATA%\\Microsoft\\Edge\\User Data"
 
 // 检查浏览器是否安装
@@ -23,9 +24,9 @@ BOOL IsBrowserInstalled(BrowserType type, BrowserInfo* info)
         pathCount = 2;
         wcscpy_s(info->exeName, _countof(info->exeName), L"chrome.exe");
     } else if (type == BROWSER_EDGE) {
-        paths[0] = EDGE_APP_PATH;
-        paths[1] = NULL;
-        pathCount = 1;
+        paths[0] = EDGE_APP_PATH_64;
+        paths[1] = EDGE_APP_PATH_32;
+        pathCount = 2;
         wcscpy_s(info->exeName, _countof(info->exeName), L"msedge.exe");
     } else {
         return FALSE;
@@ -86,20 +87,35 @@ BOOL GetBrowserVersion(BrowserType type, WCHAR* version, int size)
     
     // 从注册表读取版本
     HKEY hKey;
-    LPCWSTR regPath;
+    LPCWSTR regPaths[3];
+    int regPathCount = 0;
     
     if (type == BROWSER_CHROME) {
-        regPath = L"SOFTWARE\\Google\\Chrome\\BLBeacon";
+        regPaths[0] = L"SOFTWARE\\Google\\Chrome\\BLBeacon";
+        regPathCount = 1;
     } else {
-        regPath = L"SOFTWARE\\Microsoft\\Edge\\BLBeacon";
+        // Edge 可能在多个注册表位置
+        regPaths[0] = L"SOFTWARE\\Microsoft\\Edge\\BLBeacon";
+        regPaths[1] = L"SOFTWARE\\WOW6432Node\\Microsoft\\Edge\\BLBeacon";
+        regPathCount = 2;
     }
     
-    if (RegOpenKeyExW(HKEY_CURRENT_USER, regPath, 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
-        if (RegQueryValueExW(hKey, L"version", NULL, NULL, (LPBYTE)version, &dwSize) == ERROR_SUCCESS) {
+    for (int i = 0; i < regPathCount; i++) {
+        if (RegOpenKeyExW(HKEY_CURRENT_USER, regPaths[i], 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+            if (RegQueryValueExW(hKey, L"version", NULL, NULL, (LPBYTE)version, &dwSize) == ERROR_SUCCESS) {
+                RegCloseKey(hKey);
+                return TRUE;
+            }
             RegCloseKey(hKey);
-            return TRUE;
         }
-        RegCloseKey(hKey);
+        // 尝试HKEY_LOCAL_MACHINE
+        if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, regPaths[i], 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+            if (RegQueryValueExW(hKey, L"version", NULL, NULL, (LPBYTE)version, &dwSize) == ERROR_SUCCESS) {
+                RegCloseKey(hKey);
+                return TRUE;
+            }
+            RegCloseKey(hKey);
+        }
     }
     
     // 备用方法：读取文件版本
@@ -135,14 +151,21 @@ BOOL GetBrowserAppPath(BrowserType type, WCHAR* path, int size)
     if (type == BROWSER_CHROME) {
         if (PathFileExistsW(CHROME_APP_PATH_64)) {
             wcscpy_s(path, size, CHROME_APP_PATH_64);
+            PathAppendW(path, L"chrome.exe");
             return TRUE;
         } else if (PathFileExistsW(CHROME_APP_PATH_32)) {
             wcscpy_s(path, size, CHROME_APP_PATH_32);
+            PathAppendW(path, L"chrome.exe");
             return TRUE;
         }
     } else if (type == BROWSER_EDGE) {
-        if (PathFileExistsW(EDGE_APP_PATH)) {
-            wcscpy_s(path, size, EDGE_APP_PATH);
+        if (PathFileExistsW(EDGE_APP_PATH_64)) {
+            wcscpy_s(path, size, EDGE_APP_PATH_64);
+            PathAppendW(path, L"msedge.exe");
+            return TRUE;
+        } else if (PathFileExistsW(EDGE_APP_PATH_32)) {
+            wcscpy_s(path, size, EDGE_APP_PATH_32);
+            PathAppendW(path, L"msedge.exe");
             return TRUE;
         }
     }

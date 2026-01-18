@@ -2,7 +2,7 @@
 #include <lmcons.h>
 
 // 获取磁盘可用空间
-ULONGLONG GetDiskFreeSpace(LPCWSTR path)
+ULONGLONG GetDiskAvailableSpace(LPCWSTR path)
 {
     ULARGE_INTEGER freeBytesAvailable;
     ULARGE_INTEGER totalBytes;
@@ -16,7 +16,7 @@ ULONGLONG GetDiskFreeSpace(LPCWSTR path)
 }
 
 // 获取磁盘总空间
-ULONGLONG GetDiskTotalSpace(LPCWSTR path)
+ULONGLONG GetDiskTotalSpaceBytes(LPCWSTR path)
 {
     ULARGE_INTEGER freeBytesAvailable;
     ULARGE_INTEGER totalBytes;
@@ -47,6 +47,6 @@ void FormatDiskSpace(ULONGLONG bytes, WCHAR* buffer, int bufferSize)
 // 检查磁盘是否有足够空间
 BOOL HasEnoughDiskSpace(LPCWSTR path, ULONGLONG requiredBytes)
 {
-    ULONGLONG freeSpace = GetDiskFreeSpace(path);
+    ULONGLONG freeSpace = GetDiskAvailableSpace(path);
     return freeSpace >= requiredBytes;
 }

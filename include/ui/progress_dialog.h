@@ -4,6 +4,8 @@
 #include "../common.h"
 #include "../browser_types.h"
 
+extern HINSTANCE g_hInstance;
+
 extern HWND g_hProgressDialog;
 extern HWND g_hProgressBar;
 extern HWND g_hStatusText;

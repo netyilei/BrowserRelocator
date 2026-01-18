@@ -33,7 +33,6 @@ typedef struct {
     BOOL moveApp;
     BOOL moveData;
     BOOL closeBrowserBeforeMove;
-    BOOL createBackup;
     BOOL fixShortcuts;
     WCHAR targetBasePath[MAX_PATH];
     
@@ -43,15 +42,29 @@ typedef struct {
 } Config;
 
 typedef struct {
+    // 应用程序目录区域
+    HWND hAppTitle;
+    HWND hAppPanel;
+    HWND hAppPathLabel;
     HWND hAppPathEdit;
-    HWND hDataPathEdit;
+    HWND hAppTargetLabel;
     HWND hAppTargetPathEdit;
-    HWND hDataTargetPathEdit;
+    HWND hAppBrowseBtn;
     HWND hAppSizeLabel;
-    HWND hDataSizeLabel;
     HWND hAppStatusLabel;
+    HWND hAppSpaceLabel;
+    
+    // 用户数据目录区域
+    HWND hDataTitle;
+    HWND hDataPanel;
+    HWND hDataPathLabel;
+    HWND hDataPathEdit;
+    HWND hDataTargetLabel;
+    HWND hDataTargetPathEdit;
+    HWND hDataBrowseBtn;
+    HWND hDataSizeLabel;
     HWND hDataStatusLabel;
-    HWND hAvailableSpaceLabel;
+    HWND hDataSpaceLabel;
 } PathSelectorUI;
 
 typedef struct {
@@ -69,7 +82,6 @@ typedef struct {
     HWND hMoveAppCheckbox;
     HWND hMoveDataCheckbox;
     HWND hCloseBrowserCheckbox;
-    HWND hCreateBackupCheckbox;
     HWND hFixShortcutsCheckbox;
 } OptionsUI;
 
@@ -80,6 +92,8 @@ typedef struct {
     HWND hMoveButton;
     HWND hRestoreButton;
     HWND hHelpButton;
+    HWND hStatusBar;
+    HWND hProgressBar;
 } MainWindowUI;
 
 #endif // BROWSER_TYPES_H

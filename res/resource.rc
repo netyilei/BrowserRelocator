@@ -1,10 +1,14 @@
 #include <windows.h>
 
+// 图标ID定义
+#define IDI_APP_ICON 101
+#define IDI_CHROME_ICON 102
+#define IDI_EDGE_ICON 103
+
 // 图标资源
 IDI_APP_ICON     ICON "icons/app_icon.ico"
 IDI_CHROME_ICON  ICON "icons/chrome.ico"
 IDI_EDGE_ICON    ICON "icons/edge.ico"
-IDI_FOLDER_ICON  ICON "icons/folder.ico"
 
 // 版本信息
 1 VERSIONINFO

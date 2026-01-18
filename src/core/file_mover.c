@@ -1,5 +1,6 @@
 #include "../../include/core/file_mover.h"
 #include "../../include/core/symlink.h"
+#include "../../include/language.h"
 
 // 全局回调函数指针
 static ProgressCallback g_progressCallback = NULL;
@@ -106,8 +107,9 @@ BOOL CopyDirectoryRecursive(LPCWSTR sourcePath, LPCWSTR targetPath, int* current
             
             // 更新进度
             if (g_progressCallback && totalCount > 0) {
+                const LanguageStrings* lang = GetCurrentLanguageStrings();
                 WCHAR status[MAX_PATH];
-                wcscpy_s(status, MAX_PATH, L"正在复制: ");
+                wcscpy_s(status, MAX_PATH, lang->copying);
                 wcscat_s(status, MAX_PATH, findData.cFileName);
                 g_progressCallback(*currentCount, totalCount, status);
             }
@@ -177,8 +179,9 @@ BOOL DeleteDirectoryRecursive(LPCWSTR path, int* currentCount, int totalCount)
             (*currentCount)++;
             
             if (g_progressCallback && totalCount > 0) {
+                const LanguageStrings* lang = GetCurrentLanguageStrings();
                 WCHAR status[MAX_PATH];
-                wcscpy_s(status, MAX_PATH, L"正在删除: ");
+                wcscpy_s(status, MAX_PATH, lang->deleting);
                 wcscat_s(status, MAX_PATH, findData.cFileName);
                 g_progressCallback(*currentCount, totalCount, status);
             }
@@ -209,9 +212,19 @@ BOOL MoveDirectory(LPCWSTR sourcePath, LPCWSTR targetPath, ProgressCallback call
     g_progressCallback = callback;
     g_cancelMove = FALSE;
     
-    // 先复制
+    // 通知开始复制
+    if (callback) {
+        callback(0, 200, L"正在复制文件...");
+    }
+    
+    // 先复制（前50%进度）
     if (!CopyDirectory(sourcePath, targetPath, callback)) {
         return FALSE;
+    }
+    
+    // 通知复制完成
+    if (callback) {
+        callback(100, 200, L"正在验证文件...");
     }
     
     // 验证复制
@@ -219,8 +232,20 @@ BOOL MoveDirectory(LPCWSTR sourcePath, LPCWSTR targetPath, ProgressCallback call
         return FALSE;
     }
     
-    // 删除源目录
-    return DeleteDirectory(sourcePath, callback);
+    // 通知开始删除
+    if (callback) {
+        callback(100, 200, L"正在删除原文件...");
+    }
+    
+    // 删除源目录（后50%进度）
+    BOOL result = DeleteDirectory(sourcePath, callback);
+    
+    // 通知完成
+    if (callback && result) {
+        callback(200, 200, L"移动完成");
+    }
+    
+    return result;
 }
 
 // 验证目录复制
