@@ -29,18 +29,19 @@ If you're also struggling with C drive space issues like I was, I hope this tool
 ## ✨ Features
 
 - 🚀 **One-Click Migration** - Move application directory and user data with a single click
-- 🔧 **Automatic Registry Fix** - Updates all registry paths automatically
-- 📋 **Shortcut Repair** - Deep repair for desktop, start menu, and Windows 11 taskbar icons
 - 💡 **Clean GUI** - Modern flat design with a dedicated real-time progress bar
-- 🔗 **Safety-First Strategy** - "Copy-Backup-Link" workflow with strict error halting (circuit breaking)
+- 🔗 **Safety-First Strategy** - "Copy-Backup-Link" workflow with strict error halting and auto-rollback
 - 🌍 **Multi-language** - English and Chinese support
 - 🛡️ **Permission Handling** - Automatically handles system-protected directories in Program Files
+- ⚡ **Zero Config Change** - Uses transparent Junctions; no need to touch registry or shortcuts
+- 📦 **Extreme Lightweight** - Optimized to only ~111KB using Single-Unit + LTO build
 - 🔄 **Easy Restore** - One-click restore to original location
 
 ## 💻 Tech Stack
 
 - **Language**: C (C99)
 - **GUI**: Win32 API + GDI+
+- **Optimization**: Single-Unit Build + LTO (Link Time Optimization)
 - **Build**: MinGW-w64
 - **Platform**: Windows 7+
 
@@ -122,8 +123,8 @@ Browsers still think they're in the original location, but the data is actually 
 |------|-------------|-----------|
 | Application Directory | Browser executable and program files | ✅ Yes |
 | User Data | Cache, bookmarks, extensions, history | ✅ Yes |
-| Registry Paths | Auto-updated during migration | ✅ Auto |
-| Shortcuts | Desktop, taskbar, start menu | ✅ Auto |
+| Registry Paths | Transparently handled via Junction (No change needed) | ✅ Auto |
+| Shortcuts | Desktop, taskbar, start menu (No change needed) | ✅ Auto |
 
 ## 🐛 Troubleshooting
 
@@ -192,12 +193,12 @@ MIT License
 ## ✨ 功能特性
 
 - 🚀 **一键搬家** - 单击即可移动应用程序目录和用户数据
-- 🔧 **自动修复注册表** - 自动更新所有注册表路径
-- 📋 **快捷方式修复** - 深度修复桌面、开始菜单及 Windows 11 任务栏固定图标
 - 💡 **简洁GUI** - 现代扁平化设计，配备独立的实时进度条
-- 🔗 **安全搬家策略** - 采用“复制-备份-链接”流程，失败自动熔断，确保原数据不丢失
+- 🔗 **安全搬家策略** - 采用“复制-备份-链接”流程，失败自动回滚，确保数据万无一失
 - 🌍 **多语言支持** - 支持英文和中文
 - 🛡️ **权限突破** - 自动处理 Program Files 目录下受系统保护的 Application 目录
+- ⚡ **零配置修改** - 纯 Junction 映射技术，无需修改注册表或快捷方式，完美兼容系统更新
+- 📦 **极致轻量** - 采用单单元构建 + LTO 优化，程序体量仅约 111KB
 - 🔄 **轻松还原** - 一键还原到原始位置
 
 ## 💻 技术栈
@@ -285,8 +286,8 @@ C:\Users\You\AppData\Local\Chrome\User Data\ → D:\BrowserData\Chrome\User Data
 |------|------|--------|
 | 应用程序目录 | 浏览器可执行文件和程序文件 | ✅ 是 |
 | 用户数据 | 缓存、书签、扩展程序、历史记录 | ✅ 是 |
-| 注册表路径 | 搬家过程中自动更新 | ✅ 自动 |
-| 快捷方式 | 桌面、任务栏、开始菜单 | ✅ 自动 |
+| 注册表路径 | 通过 Junction 透明处理 (无需修改) | ✅ 自动 |
+| 快捷方式 | 桌面、任务栏、开始菜单 (无需修改) | ✅ 自动 |
 
 ## 🐛 故障排除
 
