@@ -16,7 +16,6 @@ BOOL IsBrowserInstalled(BrowserType type, BrowserInfo* info)
 {
     const WCHAR* paths[2];
     int pathCount = 0;
-    WCHAR exePath[MAX_PATH];
     
     if (type == BROWSER_CHROME) {
         paths[0] = CHROME_APP_PATH_64;
@@ -77,7 +76,6 @@ BOOL GetBrowserVersion(BrowserType type, WCHAR* version, int size)
 {
     WCHAR exePath[MAX_PATH];
     DWORD dwSize = size;
-    DWORD dummy;
     
     if (type == BROWSER_CHROME) {
         wcscpy_s(exePath, _countof(exePath), L"chrome.exe");

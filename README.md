@@ -30,11 +30,11 @@ If you're also struggling with C drive space issues like I was, I hope this tool
 
 - 🚀 **One-Click Migration** - Move application directory and user data with a single click
 - 🔧 **Automatic Registry Fix** - Updates all registry paths automatically
-- 📋 **Shortcut Repair** - Fixes desktop and taskbar shortcuts
-- 💡 **Simple GUI** - Clean, modern flat design with intuitive interface
-- 📊 **Real-time Progress** - See exactly what's happening during migration
-- 🔗 **Transparent Symlinks** - Uses junctions so browsers work normally after migration
+- 📋 **Shortcut Repair** - Deep repair for desktop, start menu, and Windows 11 taskbar icons
+- 💡 **Clean GUI** - Modern flat design with a dedicated real-time progress bar
+- 🔗 **Safety-First Strategy** - "Copy-Backup-Link" workflow with strict error halting (circuit breaking)
 - 🌍 **Multi-language** - English and Chinese support
+- 🛡️ **Permission Handling** - Automatically handles system-protected directories in Program Files
 - 🔄 **Easy Restore** - One-click restore to original location
 
 ## 💻 Tech Stack
@@ -86,10 +86,11 @@ make clean
 
 ## ⚠️ Important Notes
 
-- ✅ **Administrator privileges required** - The program will automatically request UAC elevation
-- ✅ **Close browser before migration** - The program can auto-close, but manual closure is recommended
-- ✅ **Ensure sufficient disk space** - Target drive must have enough space for browser data
-- ✅ **Backup recommended** - Although the tool is safe, backing up important data is always wise
+- ✅ **Administrator privileges required** - Automatically requests UAC elevation for registry and permission modifications
+- ✅ **Service Management** - Temporarily disables update services (e.g., EdgeUpdate) to prevent file locking
+- ✅ **Data Safety** - Renames original folders to `_bak` instead of deleting them, only cleaning up after full success
+- ✅ **Sufficient Disk Space** - Ensure target drive has enough space for migration
+- ✅ **Backup Recommended** - While the tool has built-in safety mechanisms, backups are always recommended
 
 ## 🌍 Language
 
@@ -192,11 +193,11 @@ MIT License
 
 - 🚀 **一键搬家** - 单击即可移动应用程序目录和用户数据
 - 🔧 **自动修复注册表** - 自动更新所有注册表路径
-- 📋 **快捷方式修复** - 修复桌面和任务栏快捷方式
-- 💡 **简洁GUI** - 现代扁平化设计，界面直观易用
-- 📊 **实时进度** - 搬家过程中实时显示操作进度
-- 🔗 **透明符号链接** - 使用Junction使搬家后浏览器正常工作
+- 📋 **快捷方式修复** - 深度修复桌面、开始菜单及 Windows 11 任务栏固定图标
+- 💡 **简洁GUI** - 现代扁平化设计，配备独立的实时进度条
+- 🔗 **安全搬家策略** - 采用“复制-备份-链接”流程，失败自动熔断，确保原数据不丢失
 - 🌍 **多语言支持** - 支持英文和中文
+- 🛡️ **权限突破** - 自动处理 Program Files 目录下受系统保护的 Application 目录
 - 🔄 **轻松还原** - 一键还原到原始位置
 
 ## 💻 技术栈
@@ -248,10 +249,11 @@ make clean
 
 ## ⚠️ 重要提示
 
-- ✅ **需要管理员权限** - 程序会自动请求UAC提升
-- ✅ **搬家前关闭浏览器** - 程序可以自动关闭，但建议手动关闭
+- ✅ **需要管理员权限** - 程序会自动请求UAC提升，用于修改注册表和文件权限
+- ✅ **自动禁用更新服务** - 搬家过程中会自动暂时禁用 Edge 等更新服务，防止文件被锁定
+- ✅ **数据安全策略** - 原目录会被重命名为 `_bak` 而非直接删除，只有在搬家彻底完成后才清理备份
 - ✅ **确保目标磁盘有足够空间** - 目标驱动器必须有足够空间存储浏览器数据
-- ✅ **建议备份** - 虽然工具很安全，但备份重要数据总是明智的选择
+- ✅ **建议备份** - 虽然工具内置了多重保护和熔断机制，但备份重要数据总是明智的选择
 
 ## 🌍 语言切换
 

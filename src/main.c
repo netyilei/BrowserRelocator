@@ -1,7 +1,6 @@
 #include "../include/common.h"
 #include "../include/browser_types.h"
 #include "../include/ui/main_window.h"
-#include "../include/ui/progress_dialog.h"
 #include "../include/language.h"
 
 // 全局变量

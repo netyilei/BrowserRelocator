@@ -33,9 +33,9 @@ set OBJDIR=obj
 set RESDIR=res
 set TARGETDIR=bin
 
-REM Compiler flags (optimized for size)
-set CFLAGS=-Wall -Os -mwindows -DUNICODE -D_UNICODE -I%INCDIR% -finput-charset=UTF-8 -fexec-charset=GBK -ffunction-sections -fdata-sections
-set LDFLAGS=-mwindows -s -Wl,--gc-sections
+REM Compiler flags (Extreme Size Optimization)
+set CFLAGS=-Wall -Os -mwindows -DUNICODE -D_UNICODE -I%INCDIR% -finput-charset=UTF-8 -fexec-charset=GBK -ffunction-sections -fdata-sections -flto -fno-ident -fno-asynchronous-unwind-tables
+set LDFLAGS=-mwindows -s -Wl,--gc-sections -flto
 set LIBS=-lgdiplus -lcomctl32 -lshlwapi -lshell32 -lole32 -luuid -lversion
 
 REM Create output directories
@@ -45,9 +45,6 @@ if exist %TARGETDIR% rmdir /s /q %TARGETDIR%
 
 echo [INFO] Creating directories...
 if not exist %OBJDIR% mkdir %OBJDIR%
-if not exist %OBJDIR%\ui mkdir %OBJDIR%\ui
-if not exist %OBJDIR%\core mkdir %OBJDIR%\core
-if not exist %OBJDIR%\utils mkdir %OBJDIR%\utils
 if not exist %TARGETDIR% mkdir %TARGETDIR%
 
 REM Compile resource file
@@ -60,94 +57,26 @@ if %errorlevel% neq 0 (
 )
 echo [OK] Resources compiled
 
-REM Compile source files
-echo [INFO] Compiling source files...
+REM Single-Unit Build (Combining all C files for maximum optimization)
+echo [INFO] Compiling and Linking (Single-Unit + LTO)...
 
-echo   Compiling: main.c
-gcc %CFLAGS% -c %SRCDIR%\main.c -o %OBJDIR%\main.o
-if %errorlevel% neq 0 goto compile_error
+set SOURCES=%SRCDIR%\main.c
+set SOURCES=%SOURCES% %SRCDIR%\ui\main_window.c
+set SOURCES=%SOURCES% %SRCDIR%\ui\browser_selector.c
+set SOURCES=%SOURCES% %SRCDIR%\ui\path_selector.c
+set SOURCES=%SOURCES% %SRCDIR%\ui\move_handler.c
+set SOURCES=%SOURCES% %SRCDIR%\core\browser_detector.c
+set SOURCES=%SOURCES% %SRCDIR%\core\file_mover.c
+set SOURCES=%SOURCES% %SRCDIR%\core\symlink.c
+set SOURCES=%SOURCES% %SRCDIR%\utils\string_utils.c
+set SOURCES=%SOURCES% %SRCDIR%\utils\disk_utils.c
+set SOURCES=%SOURCES% %SRCDIR%\utils\process_utils.c
+set SOURCES=%SOURCES% %SRCDIR%\utils\language.c
 
-echo   Compiling: ui\main_window.c
-gcc %CFLAGS% -c %SRCDIR%\ui\main_window.c -o %OBJDIR%\ui\main_window.o
-if %errorlevel% neq 0 goto compile_error
+gcc %CFLAGS% %SOURCES% %OBJDIR%\resource.o -o %TARGETDIR%\BrowserGarage.exe %LDFLAGS% %LIBS%
 
-echo   Compiling: ui\browser_selector.c
-gcc %CFLAGS% -c %SRCDIR%\ui\browser_selector.c -o %OBJDIR%\ui\browser_selector.o
-if %errorlevel% neq 0 goto compile_error
-
-echo   Compiling: ui\path_selector.c
-gcc %CFLAGS% -c %SRCDIR%\ui\path_selector.c -o %OBJDIR%\ui\path_selector.o
-if %errorlevel% neq 0 goto compile_error
-
-echo   Compiling: ui\progress_dialog.c
-gcc %CFLAGS% -c %SRCDIR%\ui\progress_dialog.c -o %OBJDIR%\ui\progress_dialog.o
-if %errorlevel% neq 0 goto compile_error
-
-echo   Compiling: ui\move_handler.c
-gcc %CFLAGS% -c %SRCDIR%\ui\move_handler.c -o %OBJDIR%\ui\move_handler.o
-if %errorlevel% neq 0 goto compile_error
-
-echo   Compiling: core\browser_detector.c
-gcc %CFLAGS% -c %SRCDIR%\core\browser_detector.c -o %OBJDIR%\core\browser_detector.o
-if %errorlevel% neq 0 goto compile_error
-
-echo   Compiling: core\file_mover.c
-gcc %CFLAGS% -c %SRCDIR%\core\file_mover.c -o %OBJDIR%\core\file_mover.o
-if %errorlevel% neq 0 goto compile_error
-
-echo   Compiling: core\symlink.c
-gcc %CFLAGS% -c %SRCDIR%\core\symlink.c -o %OBJDIR%\core\symlink.o
-if %errorlevel% neq 0 goto compile_error
-
-echo   Compiling: core\registry_fixer.c
-gcc %CFLAGS% -c %SRCDIR%\core\registry_fixer.c -o %OBJDIR%\core\registry_fixer.o
-if %errorlevel% neq 0 goto compile_error
-
-echo   Compiling: core\shortcut_fixer.c
-gcc %CFLAGS% -c %SRCDIR%\core\shortcut_fixer.c -o %OBJDIR%\core\shortcut_fixer.o
-if %errorlevel% neq 0 goto compile_error
-
-echo   Compiling: utils\string_utils.c
-gcc %CFLAGS% -c %SRCDIR%\utils\string_utils.c -o %OBJDIR%\utils\string_utils.o
-if %errorlevel% neq 0 goto compile_error
-
-echo   Compiling: utils\disk_utils.c
-gcc %CFLAGS% -c %SRCDIR%\utils\disk_utils.c -o %OBJDIR%\utils\disk_utils.o
-if %errorlevel% neq 0 goto compile_error
-
-echo   Compiling: utils\process_utils.c
-gcc %CFLAGS% -c %SRCDIR%\utils\process_utils.c -o %OBJDIR%\utils\process_utils.o
-if %errorlevel% neq 0 goto compile_error
-
-echo   Compiling: utils\language.c
-gcc %CFLAGS% -c %SRCDIR%\utils\language.c -o %OBJDIR%\utils\language.o
-if %errorlevel% neq 0 goto compile_error
-
-echo [OK] All source files compiled
-echo.
-
-REM Link
-echo [INFO] Linking...
-set OBJECTS=%OBJDIR%\main.o
-set OBJECTS=%OBJECTS% %OBJDIR%\ui\main_window.o
-set OBJECTS=%OBJECTS% %OBJDIR%\ui\browser_selector.o
-set OBJECTS=%OBJECTS% %OBJDIR%\ui\path_selector.o
-set OBJECTS=%OBJECTS% %OBJDIR%\ui\progress_dialog.o
-set OBJECTS=%OBJECTS% %OBJDIR%\ui\move_handler.o
-set OBJECTS=%OBJECTS% %OBJDIR%\core\browser_detector.o
-set OBJECTS=%OBJECTS% %OBJDIR%\core\file_mover.o
-set OBJECTS=%OBJECTS% %OBJDIR%\core\symlink.o
-set OBJECTS=%OBJECTS% %OBJDIR%\core\registry_fixer.o
-set OBJECTS=%OBJECTS% %OBJDIR%\core\shortcut_fixer.o
-set OBJECTS=%OBJECTS% %OBJDIR%\utils\string_utils.o
-set OBJECTS=%OBJECTS% %OBJDIR%\utils\disk_utils.o
-set OBJECTS=%OBJECTS% %OBJDIR%\utils\process_utils.o
-set OBJECTS=%OBJECTS% %OBJDIR%\utils\language.o
-set OBJECTS=%OBJECTS% %OBJDIR%\resource.o
-
-gcc %OBJECTS% -o %TARGETDIR%\BrowserGarage.exe %LDFLAGS% %LIBS%
 if %errorlevel% neq 0 (
-    echo [ERROR] Linking failed!
+    echo [ERROR] Build failed!
     pause
     exit /b 1
 )

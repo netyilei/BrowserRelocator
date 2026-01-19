@@ -65,6 +65,8 @@ HWND CreateMainWindow(HINSTANCE hInstance)
     
     // 初始化浏览器信息
     InitializeBrowserInfo(&g_browsers[0], &g_browsers[1]);
+    RefreshBrowserStatus(&g_browsers[0]);
+    RefreshBrowserStatus(&g_browsers[1]);
     
     // 创建UI控件
     CreateMainWindowUI(hwnd);
@@ -166,13 +168,8 @@ void CreateOptionsUI(HWND hwnd, OptionsUI* ui, int x, int y)
     // 关闭浏览器改为弹窗确认，不显示复选框
     ui->hCloseBrowserCheckbox = NULL;
     
-    ui->hFixShortcutsCheckbox = CreateWindowExW(
-        0, L"BUTTON", lang->fixShortcuts,
-        WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
-        x + 165, startY, 150, checkHeight, hwnd, (HMENU)ID_CHECK_FIX_SHORTCUTS, g_hInstance, NULL
-    );
-    SendMessageW(ui->hFixShortcutsCheckbox, BM_SETCHECK, BST_CHECKED, 0);
-    SendMessageW(ui->hFixShortcutsCheckbox, WM_SETFONT, (WPARAM)hFont, TRUE);
+    // 不再需要修复快捷方式和注册表，通过 Junction 保持透明重定向
+    ui->hFixShortcutsCheckbox = NULL;
 }
 
 // 创建操作按钮
@@ -452,7 +449,6 @@ void UpdateWindowStrings()
     
     // 更新复选框（跳过NULL指针）
     if (g_ui.options.hMoveAppCheckbox) SetWindowTextW(g_ui.options.hMoveAppCheckbox, lang->moveApp);
-    if (g_ui.options.hFixShortcutsCheckbox) SetWindowTextW(g_ui.options.hFixShortcutsCheckbox, lang->fixShortcuts);
     
     // 更新按钮
     SetWindowTextW(g_ui.hMoveButton, lang->moveButton);

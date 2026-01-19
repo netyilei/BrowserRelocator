@@ -17,48 +17,42 @@ BOOL ReplaceString(WCHAR* str, LPCWSTR oldStr, LPCWSTR newStr, WCHAR* outStr, in
     size_t newLen = wcslen(newStr);
     size_t strLen = wcslen(str);
     
-    // 计算结果字符串最大长度
-    size_t maxResultLen = strLen + newLen * 10; // 简化估算
-    if (maxResultLen >= (size_t)outSize) {
+    // 动态计算结果长度
+    size_t count = 0;
+    const WCHAR* p = str;
+    while ((p = wcsstr(p, oldStr)) != NULL) {
+        count++;
+        p += oldLen;
+    }
+    
+    size_t finalLen = strLen + (count * (newLen - oldLen));
+    if (finalLen >= (size_t)outSize) {
         return FALSE;
     }
     
-    // 临时缓冲区
-    WCHAR* temp = (WCHAR*)malloc((maxResultLen + 1) * sizeof(WCHAR));
-    if (!temp) {
-        return FALSE;
+    WCHAR* result = (WCHAR*)malloc((finalLen + 1) * sizeof(WCHAR));
+    if (!result) return FALSE;
+    result[0] = L'\0';
+    
+    const WCHAR* currentPos = str;
+    const WCHAR* nextMatch;
+    
+    while ((nextMatch = wcsstr(currentPos, oldStr)) != NULL) {
+        // 拷贝匹配项前的内容
+        size_t prefixLen = nextMatch - currentPos;
+        wcsncat_s(result, finalLen + 1, currentPos, prefixLen);
+        
+        // 拷贝新内容
+        wcscat_s(result, finalLen + 1, newStr);
+        
+        currentPos = nextMatch + oldLen;
     }
     
-    wcscpy_s(temp, maxResultLen + 1, str);
-    
-    WCHAR* pos = temp;
-    WCHAR result[MAX_PATH * 4] = L"";
-    size_t resultLen = 0;
-    
-    while ((pos = wcsstr(pos, oldStr)) != NULL) {
-        // 添加旧字符串前的内容
-        size_t prefixLen = pos - temp;
-        if (resultLen + prefixLen < MAX_PATH * 4) {
-            wcsncat_s(result, MAX_PATH * 4, temp, prefixLen);
-            resultLen += prefixLen;
-        }
-        
-        // 添加新字符串
-        if (resultLen + newLen < MAX_PATH * 4) {
-            wcscat_s(result, MAX_PATH * 4, newStr);
-            resultLen += newLen;
-        }
-        
-        pos += oldLen;
-        temp = pos;
-    }
-    
-    // 添加剩余部分
-    wcscat_s(result, MAX_PATH * 4, temp);
+    // 拷贝剩余内容
+    wcscat_s(result, finalLen + 1, currentPos);
     
     wcscpy_s(outStr, outSize, result);
-    
-    free(temp);
+    free(result);
     return TRUE;
 }
 

@@ -1,26 +1,9 @@
 #include "../../include/ui/main_window.h"
-#include "../../include/ui/progress_dialog.h"
 #include "../../include/ui/path_selector.h"
 #include "../../include/core/file_mover.h"
 #include "../../include/core/symlink.h"
-#include "../../include/core/registry_fixer.h"
-#include "../../include/core/shortcut_fixer.h"
 #include "../../include/utils/process_utils.h"
 #include "../../include/utils/disk_utils.h"
-
-// 检查管理员权限
-static BOOL IsAdmin()
-{
-    BOOL isAdmin = FALSE;
-    PSID adminGroup = NULL;
-    SID_IDENTIFIER_AUTHORITY authority = SECURITY_NT_AUTHORITY;
-    
-    if (AllocateAndInitializeSid(&authority, 2, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_ADMINS, 0, 0, 0, 0, 0, 0, &adminGroup)) {
-        CheckTokenMembership(NULL, adminGroup, &isAdmin);
-        FreeSid(adminGroup);
-    }
-    return isAdmin;
-}
 
 // 递归创建目录（如果不存在）
 static BOOL EnsureDirectoryExists(LPCWSTR path)
@@ -37,13 +20,20 @@ static BOOL EnsureDirectoryExists(LPCWSTR path)
 // 进度回调函数
 static void MoveProgressCallback(int current, int total, LPCWSTR status)
 {
+    static DWORD lastUpdate = 0;
+    DWORD now = GetTickCount();
+    
     SetStatusProgress(current, total);
     SetStatusText(status);
-    // 处理消息以保持UI响应
-    MSG msg;
-    while (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE)) {
-        TranslateMessage(&msg);
-        DispatchMessageW(&msg);
+    
+    // 限制消息处理频率（至少间隔 100ms），防止由于消息积压导致的崩溃
+    if (now - lastUpdate > 100) {
+        lastUpdate = now;
+        MSG msg;
+        while (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE)) {
+            TranslateMessage(&msg);
+            DispatchMessageW(&msg);
+        }
     }
 }
 
@@ -220,6 +210,15 @@ static BOOL ExecuteMoveOperation(BrowserInfo* browser)
         }
         
         browser->appMoved = TRUE;
+        
+        // 搬家成功后删除备份
+        SetStatusProgress(step + 1, 10);
+        SetStatusText(L"正在清理应用程序备份...");
+        
+        if (PathFileExistsW(appPathBak)) {
+            DeleteDirectory(appPathBak, NULL);
+        }
+        
         step += 2;
     }
     
@@ -289,42 +288,19 @@ static BOOL ExecuteMoveOperation(BrowserInfo* browser)
         }
         
         browser->dataMoved = TRUE;
-        step += 2;
-    }
-    
-    // 4. 修复注册表
-    if (g_config.fixShortcuts) {
-        SetStatusProgress(step, 10);
-        SetStatusText(lang->fixingRegistry);
-        FixAllRegistryPaths(browser);
-        step++;
-    }
-    
-    // 5. 修复快捷方式
-    if (g_config.fixShortcuts) {
-        SetStatusProgress(step, 10);
-        SetStatusText(lang->fixingShortcuts);
-        FindAndFixShortcuts(browser);
-        step++;
-    }
-    
-    // 6. 清理备份目录
-    if (g_config.moveApp) {
-        WCHAR appPathBak[MAX_PATH];
-        swprintf_s(appPathBak, MAX_PATH, L"%s_bak", browser->appPath);
-        if (PathFileExistsW(appPathBak)) {
-            DeleteDirectory(appPathBak, NULL);
-        }
-    }
-    
-    if (g_config.moveData) {
-        WCHAR dataPathBak[MAX_PATH];
-        swprintf_s(dataPathBak, MAX_PATH, L"%s_bak", browser->dataPath);
+        
+        // 搬家成功后清理备份
+        SetStatusProgress(step + 1, 10);
+        SetStatusText(L"正在清理用户数据备份...");
+        
         if (PathFileExistsW(dataPathBak)) {
             DeleteDirectory(dataPathBak, NULL);
         }
+        
+        step += 2;
     }
     
+    // 6. 最终确认所有操作已落盘
     SetStatusProgress(10, 10);
     SetStatusText(lang->completed);
     
@@ -378,19 +354,6 @@ static BOOL ExecuteRestoreOperation(BrowserInfo* browser)
         
         browser->dataMoved = FALSE;
         step++;
-    }
-    
-    // 3. 还原注册表（将新路径改回原路径）
-    SetStatusProgress(step, 6);
-    SetStatusText(lang->fixingRegistry);
-    
-    // 应用程序路径注册表还原
-    if (wcslen(browser->appTargetPath) > 0) {
-        FixBrowserRegistry(browser->type, browser->appTargetPath, browser->defaultAppPath);
-    }
-    // 用户数据路径注册表还原
-    if (wcslen(browser->dataTargetPath) > 0) {
-        FixBrowserRegistry(browser->type, browser->dataTargetPath, browser->defaultDataPath);
     }
     
     SetStatusProgress(6, 6);
