@@ -68,6 +68,7 @@ set SOURCES=%SOURCES% %SRCDIR%\ui\move_handler.c
 set SOURCES=%SOURCES% %SRCDIR%\core\browser_detector.c
 set SOURCES=%SOURCES% %SRCDIR%\core\file_mover.c
 set SOURCES=%SOURCES% %SRCDIR%\core\symlink.c
+set SOURCES=%SOURCES% %SRCDIR%\core\registry_fixer.c
 set SOURCES=%SOURCES% %SRCDIR%\utils\string_utils.c
 set SOURCES=%SOURCES% %SRCDIR%\utils\disk_utils.c
 set SOURCES=%SOURCES% %SRCDIR%\utils\process_utils.c

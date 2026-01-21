@@ -2,6 +2,7 @@
 #include "../../include/ui/path_selector.h"
 #include "../../include/core/file_mover.h"
 #include "../../include/core/symlink.h"
+#include "../../include/core/registry_fixer.h"
 #include "../../include/utils/process_utils.h"
 #include "../../include/utils/disk_utils.h"
 
@@ -300,6 +301,20 @@ static BOOL ExecuteMoveOperation(BrowserInfo* browser)
         step += 2;
     }
     
+    // 4. 修复注册表路径（默认浏览器问题）
+    SetStatusProgress(9, 10);
+    SetStatusText(L"\u4fee\u590d\u6ce8\u518c\u8868\u8def\u5f84...");
+    
+    // 修复浏览器注册表路径
+    if (browser->appMoved) {
+        // 应用程序目录已搬家，更新注册表
+        if (FixBrowserRegistryPaths(browser->type, browser->defaultAppPath, browser->appTargetPath)) {
+            swprintf_s(debugMsg, 1024, L"\u5df2\u66f4\u65b0\u6ce8\u518c\u8868\u8def\u5f84\n\u65e7\u8def\u5f84: %s\n\u65b0\u8def\u5f84: %s", 
+                     browser->defaultAppPath, browser->appTargetPath);
+            // MessageBoxW(g_hMainWindow, debugMsg, L"\u6ce8\u518c\u8868\u4fee\u590d", MB_OK | MB_ICONINFORMATION);
+        }
+    }
+    
     // 6. 最终确认所有操作已落盘
     SetStatusProgress(10, 10);
     SetStatusText(lang->completed);
@@ -354,6 +369,19 @@ static BOOL ExecuteRestoreOperation(BrowserInfo* browser)
         
         browser->dataMoved = FALSE;
         step++;
+    }
+    
+    // 3. 恢复注册表路径
+    SetStatusProgress(step, 6);
+    SetStatusText(L"\u6062\u590d\u6ce8\u518c\u8868\u8def\u5f84...");
+    
+    if (browser->appMoved == FALSE) {
+        // 应用程序已还原，恢复注册表路径
+        if (FixBrowserRegistryPaths(browser->type, browser->appTargetPath, browser->defaultAppPath)) {
+            swprintf_s(debugMsg, 1024, L"\u5df2\u6062\u590d\u6ce8\u518c\u8868\u8def\u5f84\n\u4ece: %s\n\u5230: %s", 
+                     browser->appTargetPath, browser->defaultAppPath);
+            // MessageBoxW(g_hMainWindow, debugMsg, L"\u6ce8\u518c\u8868\u6062\u590d", MB_OK | MB_ICONINFORMATION);
+        }
     }
     
     SetStatusProgress(6, 6);

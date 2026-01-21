@@ -33,7 +33,8 @@ If you're also struggling with C drive space issues like I was, I hope this tool
 - 🔗 **Safety-First Strategy** - "Copy-Backup-Link" workflow with strict error halting and auto-rollback
 - 🌍 **Multi-language** - English and Chinese support
 - 🛡️ **Permission Handling** - Automatically handles system-protected directories in Program Files
-- ⚡ **Zero Config Change** - Uses transparent Junctions; no need to touch registry or shortcuts
+- 🔧 **Automatic Registry Fix** - Automatically updates registry paths to prevent default browser issues after restart
+- ⚡ **Junction-Based Redirection** - Uses transparent Junctions for seamless operation
 - 📦 **Extreme Lightweight** - Optimized to only ~111KB using Single-Unit + LTO build
 - 🔄 **Easy Restore** - One-click restore to original location
 

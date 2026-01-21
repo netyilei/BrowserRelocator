@@ -29,7 +29,6 @@ SOURCES = $(SRCDIR)/main.c \
           $(SRCDIR)/core/file_mover.c \
           $(SRCDIR)/core/symlink.c \
           $(SRCDIR)/core/registry_fixer.c \
-          $(SRCDIR)/core/shortcut_fixer.c \
           $(SRCDIR)/utils/string_utils.c \
           $(SRCDIR)/utils/disk_utils.c \
           $(SRCDIR)/utils/process_utils.c \
