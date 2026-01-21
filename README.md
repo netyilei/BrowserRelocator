@@ -1,10 +1,10 @@
-# BrowserGarage
+"# BrowserGarage
 
 [English](#english) | [中文](#chinese)
 
 ---
 
-<a name="english"></a>
+<a name=\"english\"></a>
 
 # BrowserGarage
 
@@ -30,7 +30,7 @@ If you're also struggling with C drive space issues like I was, I hope this tool
 
 - 🚀 **One-Click Migration** - Move application directory and user data with a single click
 - 💡 **Clean GUI** - Modern flat design with a dedicated real-time progress bar
-- 🔗 **Safety-First Strategy** - "Copy-Backup-Link" workflow with strict error halting and auto-rollback
+- 🔗 **Safety-First Strategy** - \"Copy-Backup-Link\" workflow with strict error halting and auto-rollback
 - 🌍 **Multi-language** - English and Chinese support
 - 🛡️ **Permission Handling** - Automatically handles system-protected directories in Program Files
 - 🔧 **Automatic Registry Fix** - Automatically updates registry paths to prevent default browser issues after restart
@@ -83,7 +83,7 @@ make clean
 1. **Select Browser** - Choose Chrome or Edge to migrate
 2. **Choose Options** - Select what to move (app directory, user data)
 3. **Pick Destination** - Select target drive/location with enough space
-4. **Click "Start Move"** - Sit back and let BrowserGarage do the work!
+4. **Click \"Start Move\"** - Sit back and let BrowserGarage do the work!
 5. **Done!** - Your browser now runs from the new location
 
 ## ⚠️ Important Notes
@@ -116,7 +116,14 @@ C:\Program Files\Chrome\ → D:\BrowserData\Chrome\App\ (Junction link)
 C:\Users\You\AppData\Local\Chrome\User Data\ → D:\BrowserData\Chrome\User Data\ (Junction link)
 ```
 
-Browsers still think they're in the original location, but the data is actually stored on your target drive!
+**Registry paths are automatically updated:**
+- App Paths: `HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\App Paths\chrome.exe`
+- Browser Associations: `HKEY_CLASSES_ROOT\ChromeHTML\shell\open\command`
+- Default Icons: `HKEY_CLASSES_ROOT\ChromeHTML\DefaultIcon`
+
+This ensures that your default browser settings persist after system restarts!
+
+Browsers still think they're in the original location, but data is actually stored on your target drive!
 
 ## 💾 What Gets Moved
 
@@ -124,7 +131,7 @@ Browsers still think they're in the original location, but the data is actually 
 |------|-------------|-----------|
 | Application Directory | Browser executable and program files | ✅ Yes |
 | User Data | Cache, bookmarks, extensions, history | ✅ Yes |
-| Registry Paths | Transparently handled via Junction (No change needed) | ✅ Auto |
+| Registry Paths | Automatically updated to point to new location | ✅ Auto |
 | Shortcuts | Desktop, taskbar, start menu (No change needed) | ✅ Auto |
 
 ## 🐛 Troubleshooting
@@ -135,6 +142,12 @@ Browsers still think they're in the original location, but the data is actually 
 - Try restoring to original location and re-migrating
 - Ensure target drive is accessible
 
+### Default browser resets after restart
+
+- **Note**: BrowserGarage automatically fixes registry paths during migration
+- If you still encounter this issue, manually set the browser as default again
+- Verify registry paths: Check `HKEY_CLASSES_ROOT\ChromeHTML\shell\open\command`
+
 ### Migration failed partway
 
 - Don't worry! BrowserGarage only moves files after successful copying
@@ -143,8 +156,8 @@ Browsers still think they're in the original location, but the data is actually 
 
 ### Need to restore?
 
-- Simply click the "Restore" button in BrowserGarage
-- All data will be moved back to the original location
+- Simply click \"Restore\" button in BrowserGarage
+- All data will be moved back to original location
 
 ## 🤝 Contributing
 
@@ -169,7 +182,7 @@ MIT License
 
 ---
 
-<a name="chinese"></a>
+<a name=\"chinese\"></a>
 
 # BrowserGarage
 
@@ -195,10 +208,11 @@ MIT License
 
 - 🚀 **一键搬家** - 单击即可移动应用程序目录和用户数据
 - 💡 **简洁GUI** - 现代扁平化设计，配备独立的实时进度条
-- 🔗 **安全搬家策略** - 采用“复制-备份-链接”流程，失败自动回滚，确保数据万无一失
+- 🔗 **安全搬家策略** - 采用\"复制-备份-链接\"流程，失败自动回滚，确保数据万无一失
 - 🌍 **多语言支持** - 支持英文和中文
 - 🛡️ **权限突破** - 自动处理 Program Files 目录下受系统保护的 Application 目录
-- ⚡ **零配置修改** - 纯 Junction 映射技术，无需修改注册表或快捷方式，完美兼容系统更新
+- 🔧 **自动修复注册表** - 自动更新注册表路径，解决重启后默认浏览器失效问题
+- ⚡ **Junction 重定向技术** - 使用透明 Junction 实现无缝操作
 - 📦 **极致轻量** - 采用单单元构建 + LTO 优化，程序体量仅约 111KB
 - 🔄 **轻松还原** - 一键还原到原始位置
 
@@ -246,7 +260,7 @@ make clean
 1. **选择浏览器** - 选择要搬家的Chrome或Edge
 2. **选择选项** - 勾选要搬家的内容（应用程序目录、用户数据）
 3. **选择目标位置** - 选择有足够空间的目标磁盘/位置
-4. **点击"开始搬家"** - 放心让BrowserGarage自动完成！
+4. **点击\"开始搬家\"** - 放心让BrowserGarage自动完成！
 5. **完成！** - 浏览器现在从新位置运行了
 
 ## ⚠️ 重要提示
@@ -279,6 +293,13 @@ C:\Program Files\Chrome\ → D:\BrowserData\Chrome\App\ (Junction链接)
 C:\Users\You\AppData\Local\Chrome\User Data\ → D:\BrowserData\Chrome\User Data\ (Junction链接)
 ```
 
+**注册表路径会自动更新：**
+- App Paths: `HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\App Paths\chrome.exe`
+- 浏览器关联: `HKEY_CLASSES_ROOT\ChromeHTML\shell\open\command`
+- 默认图标: `HKEY_CLASSES_ROOT\ChromeHTML\DefaultIcon`
+
+这样可以确保您的默认浏览器设置在系统重启后仍然有效！
+
 浏览器仍然认为它们在原始位置，但数据实际上存储在目标驱动器上！
 
 ## 💾 搬家内容
@@ -287,7 +308,7 @@ C:\Users\You\AppData\Local\Chrome\User Data\ → D:\BrowserData\Chrome\User Data
 |------|------|--------|
 | 应用程序目录 | 浏览器可执行文件和程序文件 | ✅ 是 |
 | 用户数据 | 缓存、书签、扩展程序、历史记录 | ✅ 是 |
-| 注册表路径 | 通过 Junction 透明处理 (无需修改) | ✅ 自动 |
+| 注册表路径 | 自动更新指向新位置 | ✅ 自动 |
 | 快捷方式 | 桌面、任务栏、开始菜单 (无需修改) | ✅ 自动 |
 
 ## 🐛 故障排除
@@ -298,6 +319,12 @@ C:\Users\You\AppData\Local\Chrome\User Data\ → D:\BrowserData\Chrome\User Data
 - 尝试还原到原始位置并重新搬家
 - 确保目标驱动器可访问
 
+### 重启后默认浏览器重置
+
+- **注意**: BrowserGarage 在搬家过程中会自动修复注册表路径
+- 如果仍然遇到此问题，请手动重新设置默认浏览器
+- 验证注册表路径：检查 `HKEY_CLASSES_ROOT\ChromeHTML\shell\open\command`
+
 ### 搬家过程中失败
 
 - 别担心！BrowserGarage只会在复制成功后才移动文件
@@ -306,7 +333,7 @@ C:\Users\You\AppData\Local\Chrome\User Data\ → D:\BrowserData\Chrome\User Data
 
 ### 需要还原？
 
-- 只需在BrowserGarage中点击"还原"按钮
+- 只需在BrowserGarage中点击\"还原\"按钮
 - 所有数据将被移回原始位置
 
 ## 🤝 贡献
@@ -334,4 +361,4 @@ MIT License
 
 **希望能帮到同样被C盘空间困扰的你！** 🎉
 
-*Created with love, from one C drive survivor to another ❤️*
+*Created with love, from one C drive survivor to another ❤️*"
